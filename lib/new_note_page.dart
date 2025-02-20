@@ -5,8 +5,19 @@ import 'dart:convert'; // JSON işlemleri için
 class NewNotePage extends StatefulWidget {
   final double screenWidth;
   final double screenHeight;
+  final String? frontText;
+  final String? backText;
+  final bool isEditMode;
+  final int? noteIndex;
 
-  NewNotePage({required this.screenWidth, required this.screenHeight});
+  NewNotePage({
+    required this.screenWidth,
+    required this.screenHeight,
+    this.frontText,
+    this.backText,
+    this.isEditMode = false,
+    this.noteIndex,
+  });
 
   @override
   _NewNotePageState createState() => _NewNotePageState();
@@ -32,6 +43,12 @@ class _NewNotePageState extends State<NewNotePage> with SingleTickerProviderStat
           });
         }
       });
+
+    // Eğer düzenleme modundaysa, mevcut kart bilgilerini yükle
+    if (widget.isEditMode) {
+      _frontController.text = widget.frontText ?? '';
+      _backController.text = widget.backText ?? '';
+    }
   }
 
   @override
@@ -42,39 +59,52 @@ class _NewNotePageState extends State<NewNotePage> with SingleTickerProviderStat
     super.dispose();
   }
 
-Future<void> _saveNote() async {
-  if (_isNoteEmpty()) {
+  Future<void> _saveNote() async {
+    if (_isNoteEmpty()) {
+      // Kullanıcıya geri bildirim ver
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Lütfen bir metin girin!")),
+      );
+      return; // Kaydetme işlemini durdur
+    }
+
+    // Kart bilgilerini JSON formatına dönüştür
+    Map<String, String> noteData = {
+      "frontText": _frontController.text,
+      "backText": _backController.text,
+      "category": "", // Kategori boş olarak ekleniyor
+      "color": "", // Renk boş olarak ekleniyor
+    };
+    String noteJson = jsonEncode(noteData);
+
+    // SharedPreferences'e kaydet
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    List<String>? notes = prefs.getStringList("notes") ?? [];
+
+    if (widget.isEditMode && widget.noteIndex != null) {
+      // Mevcut notu güncelle
+      notes[widget.noteIndex!] = noteJson;
+    } else {
+      // Yeni notu ekle
+      notes.add(noteJson);
+    }
+
+    await prefs.setStringList("notes", notes); // Listeyi güncelle
+
     // Kullanıcıya geri bildirim ver
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Lütfen bir metin girin!")),
+      SnackBar(content: Text("Not Kaydedildi!")),
     );
-    return; // Kaydetme işlemini durdur
+
+    // Input alanlarını temizle
+    _frontController.clear();
+    _backController.clear();
+
+    // Düzenleme modunda kaydedildikten sonra geri dön
+    if (widget.isEditMode) {
+      Navigator.pop(context, notes);
+    }
   }
-
-  // Kart bilgilerini JSON formatına dönüştür
-  Map<String, String> noteData = {
-    "frontText": _frontController.text,
-    "backText": _backController.text,
-    "category": "", // Kategori boş olarak ekleniyor
-    "color": "", // Renk boş olarak ekleniyor
-  };
-  String noteJson = jsonEncode(noteData);
-
-  // SharedPreferences'e kaydet
-  SharedPreferences prefs = await SharedPreferences.getInstance();
-  List<String>? notes = prefs.getStringList("notes") ?? [];
-  notes.add(noteJson); // Yeni notu listeye ekle
-  await prefs.setStringList("notes", notes); // Listeyi güncelle
-
-  // Kullanıcıya geri bildirim ver
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(content: Text("Not Kaydedildi!")),
-  );
-
-  // Input alanlarını temizle
-  _frontController.clear();
-  _backController.clear();
-}
 
   bool _isNoteSaved = false; // Add a variable to track if the note is saved
 

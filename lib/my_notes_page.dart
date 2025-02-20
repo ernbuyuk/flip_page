@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+import 'new_note_page.dart';
 
 class MyNotesPage extends StatefulWidget {
   final bool isEditMode;
@@ -103,9 +104,26 @@ class _MyNotesPageState extends State<MyNotesPage> with SingleTickerProviderStat
   }
 
   void _editNote() {
-    // Navigate to the note editing page
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => NewNotePage(
+          screenWidth: MediaQuery.of(context).size.width,
+          screenHeight: MediaQuery.of(context).size.height,
+          frontText: _notes[currentIndex]['frontText'],
+          backText: _notes[currentIndex]['backText'],
+          isEditMode: true,
+          noteIndex: currentIndex,
+        ),
+      ),
+    ).then((updatedNotes) {
+      if (updatedNotes != null) {
+        setState(() {
+          _notes = (updatedNotes as List<String>).map<Map<String, dynamic>>((note) => jsonDecode(note)).toList();
+        });
+      }
+    });
   }
-
   Future<void> _saveNotes() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     List<String> notesJson = _notes.map((note) => jsonEncode(note)).toList();
