@@ -1,0 +1,319 @@
+import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert'; // JSON işlemleri için
+
+class NewNotePage extends StatefulWidget {
+  final double screenWidth;
+  final double screenHeight;
+
+  NewNotePage({required this.screenWidth, required this.screenHeight});
+
+  @override
+  _NewNotePageState createState() => _NewNotePageState();
+}
+
+class _NewNotePageState extends State<NewNotePage> with SingleTickerProviderStateMixin {
+  bool _isFront = true;
+  final TextEditingController _frontController = TextEditingController();
+  final TextEditingController _backController = TextEditingController();
+  late AnimationController _animationController;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    )..addStatusListener((status) {
+        if (status == AnimationStatus.completed) {
+          setState(() {
+            _isFront = !_isFront;
+            _animationController.reset();
+          });
+        }
+      });
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    _frontController.dispose();
+    _backController.dispose();
+    super.dispose();
+  }
+
+Future<void> _saveNote() async {
+  if (_isNoteEmpty()) {
+    // Kullanıcıya geri bildirim ver
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Lütfen bir metin girin!")),
+    );
+    return; // Kaydetme işlemini durdur
+  }
+
+  // Kart bilgilerini JSON formatına dönüştür
+  Map<String, String> noteData = {
+    "frontText": _frontController.text,
+    "backText": _backController.text,
+    "category": "", // Kategori boş olarak ekleniyor
+    "color": "", // Renk boş olarak ekleniyor
+  };
+  String noteJson = jsonEncode(noteData);
+
+  // SharedPreferences'e kaydet
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+  List<String>? notes = prefs.getStringList("notes") ?? [];
+  notes.add(noteJson); // Yeni notu listeye ekle
+  await prefs.setStringList("notes", notes); // Listeyi güncelle
+
+  // Kullanıcıya geri bildirim ver
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(content: Text("Not Kaydedildi!")),
+  );
+
+  // Input alanlarını temizle
+  _frontController.clear();
+  _backController.clear();
+}
+
+  bool _isNoteSaved = false; // Add a variable to track if the note is saved
+
+  bool _isNoteEmpty() {
+    return _frontController.text.isEmpty && _backController.text.isEmpty;
+  }
+
+  void _checkNoteSaved(BuildContext context) {
+    if (_isNoteSaved || _isNoteEmpty()) {
+      Navigator.pop(context);
+    } else {
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text("Emin misiniz?"),
+            content: Text("Son yazdığınız not kaydedilmedi. Geri gitmek istediğinize emin misiniz?"),
+            actions: [
+              TextButton(
+                child: Text("Hayır"),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+              ),
+              TextButton(
+                child: Text("Evet"),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  Navigator.pop(context);
+                },
+              ),
+            ],
+          );
+        },
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final screenWidth = widget.screenWidth;
+    final screenHeight = widget.screenHeight;
+
+    return Scaffold(
+      backgroundColor: Color(0xFFF5F0EB),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: [
+            Padding(
+              padding: EdgeInsets.only(top: screenHeight * 0.04, left: screenWidth * 0.05, right: screenWidth * 0.05),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  SizedBox(width: screenWidth * 0.075), // Placeholder for alignment
+                  Text(
+                    "Yeni Not",
+                    style: TextStyle(
+                        fontSize: screenWidth * 0.1125, // Increased font size
+                        fontWeight: FontWeight.w800,
+                        fontFamily: "Cursive"),
+                  ),
+                  GestureDetector(
+                    onTap: () {
+                      _checkNoteSaved(context);
+                    },
+                    child: Image.asset(
+                      'assets/exit.png',
+                      width: screenWidth * 0.09375,
+                      height: screenHeight * 0.06,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(height: screenHeight * 0.02),
+            GestureDetector(
+              onPanUpdate: (details) {
+                if (details.delta.dx > 5) {
+                  setState(() {
+                    _animationController.forward();
+                  });
+                } else if (details.delta.dx < -5) {
+                  setState(() {
+                    _animationController.forward();
+                  });
+                }
+              },
+              child: AnimatedBuilder(
+                animation: _animationController,
+                builder: (context, child) {
+                  return Transform(
+                    transform: Matrix4.identity()
+                      ..setEntry(3, 2, 0.001)
+                      ..rotateY(_animationController.value * 3.1416),
+                    alignment: Alignment.center,
+                    child: _isFront ? _buildFrontCard(screenWidth, screenHeight) : _buildBackCard(screenWidth, screenHeight),
+                  );
+                },
+              ),
+            ),
+            SizedBox(height: screenHeight * 0.01),
+            GestureDetector(
+              onTap: () {
+                setState(() {
+                  _animationController.forward(); // Animasyonu başlat
+                });
+              },
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: widget.screenWidth * 0.05),
+                decoration: BoxDecoration(
+                  color: Color(0xFFF5F0EB), // Arka fonla aynı renk
+                  borderRadius: BorderRadius.circular(5),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Image.asset('assets/flip.png', width: widget.screenWidth * 0.16, height: widget.screenHeight * 0.08), // Soldaki görsel
+                          SizedBox(width: widget.screenWidth * 0.02), // Boşluk
+                          Text(
+                            "Sayfayı Çevir",
+                            style: TextStyle(
+                              fontSize: widget.screenWidth * 0.09375,
+                              color: Colors.black,
+                              fontWeight: FontWeight.w800,
+                              fontFamily: "Cursive",
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            SizedBox(height: screenHeight * 0.01),
+            GestureDetector(
+              onTap: () {
+                _saveNote();
+                setState(() {
+                  _isNoteSaved = true; // Mark the note as saved
+                });
+              },
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: widget.screenWidth * 0.05),
+                decoration: BoxDecoration(
+                  color: Color(0xFFF5F0EB), // Arka fonla aynı renk
+                  borderRadius: BorderRadius.circular(5),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Image.asset('assets/file_yellow.png', width: widget.screenWidth * 0.16, height: widget.screenHeight * 0.08), // Soldaki görsel
+                          SizedBox(width: widget.screenWidth * 0.02), // Boşluk
+                          Text(
+                            "Notu Kaydet",
+                            style: TextStyle(
+                              fontSize: widget.screenWidth * 0.09375,
+                              color: Colors.black,
+                              fontWeight: FontWeight.w800,
+                              fontFamily: "Cursive",
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFrontCard(double screenWidth, double screenHeight) {
+    return Container(
+      width: screenWidth * 0.95,
+      height: screenHeight * 0.65,
+      decoration: BoxDecoration(
+        image: DecorationImage(
+          image: AssetImage("assets/card_template.png"),
+          fit: BoxFit.cover,
+        ),
+        borderRadius: BorderRadius.circular(15),
+      ),
+      child: Center(
+        child: Padding(
+          padding: EdgeInsets.all(screenWidth * 0.05),
+          child: TextField(
+            controller: _frontController,
+            maxLines: null,
+            textAlign: TextAlign.center,
+            decoration: InputDecoration(
+              hintText: "Ön yüz yazısını buraya yazın...",
+              border: InputBorder.none,
+            ),
+            style: TextStyle(fontSize: screenWidth * 0.05625),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBackCard(double screenWidth, double screenHeight) {
+    return Container(
+      width: screenWidth * 0.95,
+      height: screenHeight * 0.65,
+      decoration: BoxDecoration(
+        image: DecorationImage(
+          image: AssetImage("assets/card_template.png"),
+          fit: BoxFit.cover,
+        ),
+        borderRadius: BorderRadius.circular(15),
+      ),
+      child: Center(
+        child: Padding(
+          padding: EdgeInsets.all(screenWidth * 0.05),
+          child: TextField(
+            controller: _backController,
+            maxLines: null,
+            textAlign: TextAlign.center,
+            decoration: InputDecoration(
+              hintText: "Arka yüz yazısını buraya yazın...",
+              border: InputBorder.none,
+            ),
+            style: TextStyle(fontSize: screenWidth * 0.05625),
+          ),
+        ),
+      ),
+    );
+  }
+}
