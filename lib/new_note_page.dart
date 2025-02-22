@@ -9,6 +9,7 @@ class NewNotePage extends StatefulWidget {
   final String? backText;
   final bool isEditMode;
   final int? noteIndex;
+  final String? folderName; // Yeni parametre
 
   NewNotePage({
     required this.screenWidth,
@@ -17,6 +18,7 @@ class NewNotePage extends StatefulWidget {
     this.backText,
     this.isEditMode = false,
     this.noteIndex,
+    this.folderName, // Yeni parametre
   });
 
   @override
@@ -28,6 +30,7 @@ class _NewNotePageState extends State<NewNotePage> with SingleTickerProviderStat
   final TextEditingController _frontController = TextEditingController();
   final TextEditingController _backController = TextEditingController();
   late AnimationController _animationController;
+  List<String> _folders = [];
 
   @override
   void initState() {
@@ -49,6 +52,16 @@ class _NewNotePageState extends State<NewNotePage> with SingleTickerProviderStat
       _frontController.text = widget.frontText ?? '';
       _backController.text = widget.backText ?? '';
     }
+
+    _loadFolders();
+  }
+
+  Future<void> _loadFolders() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    List<String>? folders = prefs.getStringList("folders") ?? [];
+    setState(() {
+      _folders = folders;
+    });
   }
 
   @override
@@ -72,7 +85,7 @@ class _NewNotePageState extends State<NewNotePage> with SingleTickerProviderStat
     Map<String, String> noteData = {
       "frontText": _frontController.text,
       "backText": _backController.text,
-      "category": "", // Kategori boş olarak ekleniyor
+      "folder": widget.folderName ?? "", // Kategori olarak klasör adı ekleniyor
       "color": "", // Renk boş olarak ekleniyor
     };
     String noteJson = jsonEncode(noteData);
@@ -104,6 +117,88 @@ class _NewNotePageState extends State<NewNotePage> with SingleTickerProviderStat
     if (widget.isEditMode) {
       Navigator.pop(context, notes);
     }
+  }
+
+  Future<void> _saveNoteToFolder(String folderName) async {
+    if (_isNoteEmpty()) {
+      // Kullanıcıya geri bildirim ver
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Lütfen bir metin girin!")),
+      );
+      return; // Kaydetme işlemini durdur
+    }
+
+    // Kart bilgilerini JSON formatına dönüştür
+    Map<String, String> noteData = {
+      "frontText": _frontController.text,
+      "backText": _backController.text,
+      "folder": folderName, // Kategori olarak klasör adı ekleniyor
+      "color": "", // Renk boş olarak ekleniyor
+    };
+    String noteJson = jsonEncode(noteData);
+
+    // SharedPreferences'e kaydet
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    List<String>? notes = prefs.getStringList("notes") ?? [];
+
+    if (widget.isEditMode && widget.noteIndex != null) {
+      // Mevcut notu güncelle
+      notes[widget.noteIndex!] = noteJson;
+    } else {
+      // Yeni notu ekle
+      notes.add(noteJson);
+    }
+
+    await prefs.setStringList("notes", notes); // Listeyi güncelle
+
+    // Kullanıcıya geri bildirim ver
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Not Kaydedildi!")),
+    );
+
+    // Input alanlarını temizle
+    _frontController.clear();
+    _backController.clear();
+
+    // Düzenleme modunda kaydedildikten sonra geri dön
+    if (widget.isEditMode) {
+      Navigator.pop(context, notes);
+    }
+  }
+
+  void _showFolderSelectionDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("Klasör Seç"),
+          content: Container(
+            width: double.maxFinite,
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: _folders.length,
+              itemBuilder: (context, index) {
+                return ListTile(
+                  title: Text(_folders[index]),
+                  onTap: () {
+                    _saveNoteToFolder(_folders[index]);
+                    Navigator.of(context).pop();
+                  },
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              child: Text("İptal"),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 
   bool _isNoteSaved = false; // Add a variable to track if the note is saved
@@ -247,7 +342,11 @@ class _NewNotePageState extends State<NewNotePage> with SingleTickerProviderStat
             SizedBox(height: screenHeight * 0.01),
             GestureDetector(
               onTap: () {
-                _saveNote();
+                if (_folders.isEmpty) {
+                  _saveNote();
+                } else {
+                  _showFolderSelectionDialog();
+                }
                 setState(() {
                   _isNoteSaved = true; // Mark the note as saved
                 });

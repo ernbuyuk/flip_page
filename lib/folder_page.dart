@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'my_notes_page.dart'; // Import MyNotesPage
 
 class FolderPage extends StatefulWidget {
   final double screenWidth;
@@ -129,7 +130,14 @@ class _FolderPageState extends State<FolderPage> {
                 itemBuilder: (context, index) {
                   return GestureDetector(
                     onTap: () {
-                      // Klasör içeriğine gitme işlemi burada yapılacak
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => MyNotesPage(
+                            folderName: _folders[index],
+                          ),
+                        ),
+                      );
                     },
                     child: Container(
                       decoration: BoxDecoration(
@@ -172,7 +180,7 @@ class _FolderPageState extends State<FolderPage> {
                     mainAxisSize: MainAxisSize.min,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Image.asset('assets/file_yellowqq.png', width: screenWidth * 0.16, height: screenHeight * 0.08), // Soldaki görsel
+                      Image.asset('assets/file_yellow.png', width: screenWidth * 0.16, height: screenHeight * 0.08), // Soldaki görsel
                       SizedBox(width: screenWidth * 0.02), // Boşluk
                       Text(
                         "Klasör Oluştur",

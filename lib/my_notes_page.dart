@@ -5,8 +5,9 @@ import 'new_note_page.dart';
 
 class MyNotesPage extends StatefulWidget {
   final bool isEditMode;
+  final String? folderName;
 
-  MyNotesPage({this.isEditMode = false});
+  MyNotesPage({this.isEditMode = false, this.folderName});
 
   @override
   _MyNotesPageState createState() => _MyNotesPageState();
@@ -44,6 +45,9 @@ class _MyNotesPageState extends State<MyNotesPage> with SingleTickerProviderStat
     List<String>? notesJson = prefs.getStringList("notes") ?? [];
     setState(() {
       _notes = notesJson.map((note) => jsonDecode(note) as Map<String, dynamic>).toList();
+      if (widget.folderName != null && widget.folderName != "Karışık") {
+        _notes = _notes.where((note) => note['folder'] == widget.folderName).toList();
+      }
     });
   }
 
@@ -110,12 +114,16 @@ class _MyNotesPageState extends State<MyNotesPage> with SingleTickerProviderStat
           backText: _notes[currentIndex]['backText'],
           isEditMode: true,
           noteIndex: currentIndex,
+          folderName: widget.folderName,
         ),
       ),
     ).then((updatedNotes) {
       if (updatedNotes != null) {
         setState(() {
           _notes = (updatedNotes as List<String>).map<Map<String, dynamic>>((note) => jsonDecode(note)).toList();
+          if (widget.folderName != null && widget.folderName != "Karışık") {
+            _notes = _notes.where((note) => note['folder'] == widget.folderName).toList();
+          }
         });
       }
     });
@@ -156,11 +164,10 @@ class _MyNotesPageState extends State<MyNotesPage> with SingleTickerProviderStat
                     child: Image.asset(
                       'assets/backpage.png',
                       width: screenWidth * 0.11,
-                      // height: screenHeight * 0.08,
                     ),
                   ),
                   Text(
-                    "Notlarım",
+                    widget.folderName ?? "Notlarım",
                     style: TextStyle(
                         fontSize: screenWidth * 0.1125, // Increased font size
                         fontWeight: FontWeight.w800,
