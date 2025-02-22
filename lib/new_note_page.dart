@@ -27,6 +27,7 @@ class NewNotePage extends StatefulWidget {
 
 class _NewNotePageState extends State<NewNotePage> with SingleTickerProviderStateMixin {
   bool _isFront = true;
+  bool _isTextVisible = true;
   final TextEditingController _frontController = TextEditingController();
   final TextEditingController _backController = TextEditingController();
   late AnimationController _animationController;
@@ -43,6 +44,18 @@ class _NewNotePageState extends State<NewNotePage> with SingleTickerProviderStat
           setState(() {
             _isFront = !_isFront;
             _animationController.reset();
+            _isTextVisible = true;
+          });
+        }
+      })
+      ..addListener(() {
+        if (_animationController.value > 0.50) {
+          setState(() {
+            _isTextVisible = false;
+          });
+        } else {
+          setState(() {
+            _isTextVisible = true;
           });
         }
       });
@@ -402,16 +415,18 @@ class _NewNotePageState extends State<NewNotePage> with SingleTickerProviderStat
       child: Center(
         child: Padding(
           padding: EdgeInsets.all(screenWidth * 0.05),
-          child: TextField(
-            controller: _frontController,
-            maxLines: null,
-            textAlign: TextAlign.center,
-            decoration: InputDecoration(
-              hintText: "Ön yüz yazısını buraya yazın...",
-              border: InputBorder.none,
-            ),
-            style: TextStyle(fontSize: screenWidth * 0.05625),
-          ),
+          child: _isTextVisible
+              ? TextField(
+                  controller: _frontController,
+                  maxLines: null,
+                  textAlign: TextAlign.center,
+                  decoration: InputDecoration(
+                    hintText: "Ön yüz yazısını buraya yazın...",
+                    border: InputBorder.none,
+                  ),
+                  style: TextStyle(fontSize: screenWidth * 0.05625),
+                )
+              : null,
         ),
       ),
     );
@@ -431,16 +446,18 @@ class _NewNotePageState extends State<NewNotePage> with SingleTickerProviderStat
       child: Center(
         child: Padding(
           padding: EdgeInsets.all(screenWidth * 0.05),
-          child: TextField(
-            controller: _backController,
-            maxLines: null,
-            textAlign: TextAlign.center,
-            decoration: InputDecoration(
-              hintText: "Arka yüz yazısını buraya yazın...",
-              border: InputBorder.none,
-            ),
-            style: TextStyle(fontSize: screenWidth * 0.05625),
-          ),
+          child: _isTextVisible
+              ? TextField(
+                  controller: _backController,
+                  maxLines: null,
+                  textAlign: TextAlign.center,
+                  decoration: InputDecoration(
+                    hintText: "Arka yüz yazısını buraya yazın...",
+                    border: InputBorder.none,
+                  ),
+                  style: TextStyle(fontSize: screenWidth * 0.05625),
+                )
+              : null,
         ),
       ),
     );

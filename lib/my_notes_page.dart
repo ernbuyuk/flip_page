@@ -20,6 +20,7 @@ class _MyNotesPageState extends State<MyNotesPage> with SingleTickerProviderStat
   late AnimationController _animationController;
   bool _isFront = true;
   bool _isFlipping = false;
+  bool _isTextVisible = true;
 
   @override
   void initState() {
@@ -33,6 +34,18 @@ class _MyNotesPageState extends State<MyNotesPage> with SingleTickerProviderStat
             _isFront = !_isFront;
             _animationController.reset();
             _isFlipping = false;
+            _isTextVisible = true;
+          });
+        }
+      })
+      ..addListener(() {
+        if (_animationController.value > 0.50) {
+          setState(() {
+            _isTextVisible = false;
+          });
+        } else {
+          setState(() {
+            _isTextVisible = true;
           });
         }
       });
@@ -348,7 +361,7 @@ class _MyNotesPageState extends State<MyNotesPage> with SingleTickerProviderStat
           fit: BoxFit.cover,
         ),
       ),
-      child: isTopCard
+      child: isTopCard && _isTextVisible
           ? Center(
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
