@@ -41,6 +41,13 @@ class _FolderPageState extends State<FolderPage> {
     _saveFolders();
   }
 
+  void _removeFolder(int index) {
+    setState(() {
+      _folders.removeAt(index);
+    });
+    _saveFolders();
+  }
+
   void _showAddFolderDialog() {
     TextEditingController folderController = TextEditingController();
     showDialog(
@@ -63,6 +70,33 @@ class _FolderPageState extends State<FolderPage> {
               child: Text("Oluştur"),
               onPressed: () {
                 _addFolder(folderController.text);
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showDeleteFolderDialog(int index) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("Klasörü Sil"),
+          content: Text("Bu klasörü silmek istediğinizden emin misiniz?"),
+          actions: [
+            TextButton(
+              child: Text("İptal"),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: Text("Sil"),
+              onPressed: () {
+                _removeFolder(index);
                 Navigator.of(context).pop();
               },
             ),
@@ -138,6 +172,9 @@ class _FolderPageState extends State<FolderPage> {
                           ),
                         ),
                       );
+                    },
+                    onLongPress: () {
+                      _showDeleteFolderDialog(index);
                     },
                     child: Container(
                       decoration: BoxDecoration(

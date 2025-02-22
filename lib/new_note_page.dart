@@ -189,15 +189,25 @@ class _NewNotePageState extends State<NewNotePage> with SingleTickerProviderStat
             width: double.maxFinite,
             child: ListView.builder(
               shrinkWrap: true,
-              itemCount: _folders.length,
+              itemCount: _folders.length + 1, // Add 1 for the "Default" option
               itemBuilder: (context, index) {
-                return ListTile(
-                  title: Text(_folders[index]),
-                  onTap: () {
-                    _saveNoteToFolder(_folders[index]);
-                    Navigator.of(context).pop();
-                  },
-                );
+                if (index == 0) {
+                  return ListTile(
+                    title: Text("Default"),
+                    onTap: () {
+                      _saveNoteToFolder("");
+                      Navigator.of(context).pop();
+                    },
+                  );
+                } else {
+                  return ListTile(
+                    title: Text(_folders[index - 1]),
+                    onTap: () {
+                      _saveNoteToFolder(_folders[index - 1]);
+                      Navigator.of(context).pop();
+                    },
+                  );
+                }
               },
             ),
           ),
