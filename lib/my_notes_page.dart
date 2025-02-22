@@ -198,14 +198,56 @@ class _MyNotesPageState extends State<MyNotesPage> with SingleTickerProviderStat
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    ElevatedButton(
-                      onPressed: _deleteNote,
-                      child: Text("Sil"),
+                    GestureDetector(
+                      onTap: _deleteNote,
+                      child: Container(
+                        padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.05),
+                        decoration: BoxDecoration(
+                          color: Color(0xFFF5F0EB), // Arka fonla aynı renk
+                          borderRadius: BorderRadius.circular(5),
+                        ),
+                        child: Row(
+                          children: [
+                            Image.asset('assets/delete.png', width: screenWidth * 0.16, height: screenHeight * 0.08), // Soldaki görsel
+                            SizedBox(width: screenWidth * 0.02), // Boşluk
+                            Text(
+                              "Sil",
+                              style: TextStyle(
+                                fontSize: screenWidth * 0.09375,
+                                color: Colors.black,
+                                fontWeight: FontWeight.w800,
+                                fontFamily: "Cursive",
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                     SizedBox(width: screenWidth * 0.05),
-                    ElevatedButton(
-                      onPressed: _editNote,
-                      child: Text("Düzenle"),
+                    GestureDetector(
+                      onTap: _editNote,
+                      child: Container(
+                        padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.05),
+                        decoration: BoxDecoration(
+                          color: Color(0xFFF5F0EB), // Arka fonla aynı renk
+                          borderRadius: BorderRadius.circular(5),
+                        ),
+                        child: Row(
+                          children: [
+                            Image.asset('assets/edit.png', width: screenWidth * 0.16, height: screenHeight * 0.08), // Soldaki görsel
+                            SizedBox(width: screenWidth * 0.02), // Boşluk
+                            Text(
+                              "Düzenle",
+                              style: TextStyle(
+                                fontSize: screenWidth * 0.09375,
+                                color: Colors.black,
+                                fontWeight: FontWeight.w800,
+                                fontFamily: "Cursive",
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ],
                 ),
