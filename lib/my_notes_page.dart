@@ -84,10 +84,6 @@ class _MyNotesPageState extends State<MyNotesPage> with SingleTickerProviderStat
     }
   }
 
-  void _checkNoteSaved(BuildContext context) {
-    // Implement your logic to check if the note is saved
-    Navigator.pop(context);
-  }
 
   void _deleteNote() {
     setState(() {
@@ -124,6 +120,7 @@ class _MyNotesPageState extends State<MyNotesPage> with SingleTickerProviderStat
       }
     });
   }
+
   Future<void> _saveNotes() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     List<String> notesJson = _notes.map((note) => jsonEncode(note)).toList();
@@ -152,7 +149,16 @@ class _MyNotesPageState extends State<MyNotesPage> with SingleTickerProviderStat
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  SizedBox(width: screenWidth * 0.075), // Placeholder for alignment
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.pop(context);
+                    },
+                    child: Image.asset(
+                      'assets/backpage.png',
+                      width: screenWidth * 0.11,
+                      // height: screenHeight * 0.08,
+                    ),
+                  ),
                   Text(
                     "Notlarım",
                     style: TextStyle(
@@ -162,7 +168,7 @@ class _MyNotesPageState extends State<MyNotesPage> with SingleTickerProviderStat
                   ),
                   GestureDetector(
                     onTap: () {
-                      _checkNoteSaved(context);
+                      Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
                     },
                     child: Image.asset(
                       'assets/exit.png',

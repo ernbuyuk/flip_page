@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'my_notes_page.dart'; // Import the MyNotesPage
+import 'folder_page.dart'; // Import the FolderPage
 
 class NewNotesMainPage extends StatelessWidget {
   final double screenWidth;
@@ -44,7 +45,7 @@ class NewNotesMainPage extends StatelessWidget {
             SizedBox(height: screenHeight * 0.1), // Increased space between header and buttons
             _buildButton(context, 'Karışık', 'assets/karisik.png', MyNotesPage(), screenWidth, screenHeight),
             SizedBox(height: screenHeight * 0.04), // Increased space between buttons
-            _buildButton(context, 'Özel', 'assets/ozel.png', MyNotesPage(), screenWidth, screenHeight),
+            _buildButton(context, 'Özel', 'assets/ozel.png', FolderPage(screenWidth: screenWidth, screenHeight: screenHeight), screenWidth, screenHeight),
             SizedBox(height: screenHeight * 0.04), // Increased space between buttons
             _buildButton(context, 'Düzenle', 'assets/duzenle.png', MyNotesPage(isEditMode: true), screenWidth, screenHeight),
           ],
