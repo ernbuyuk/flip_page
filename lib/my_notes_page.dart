@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+import 'dart:math'; // Import dart:math for shuffling
 import 'new_note_page.dart';
 
 class MyNotesPage extends StatefulWidget {
@@ -61,6 +62,7 @@ class _MyNotesPageState extends State<MyNotesPage> with SingleTickerProviderStat
       if (widget.folderName != null && widget.folderName != "Karışık") {
         _notes = _notes.where((note) => note['folder'] == widget.folderName).toList();
       }
+      _notes.shuffle(Random()); // Shuffle the notes
     });
   }
 
@@ -100,7 +102,6 @@ class _MyNotesPageState extends State<MyNotesPage> with SingleTickerProviderStat
       });
     }
   }
-
 
   void _deleteNote() {
     setState(() {
@@ -314,8 +315,9 @@ class _MyNotesPageState extends State<MyNotesPage> with SingleTickerProviderStat
   }
 
   Widget _buildNoteCard(Map<String, dynamic> note, bool isTopCard) {
+    String folderName = note["folder"] ?? "(default)";
     if (!isTopCard) {
-      return _buildCard(note["frontText"] ?? "Ön Yüz", false);
+      return _buildCard(note["frontText"] ?? "Ön Yüz", false, folderName);
     }
 
     return AnimatedBuilder(
@@ -326,34 +328,38 @@ class _MyNotesPageState extends State<MyNotesPage> with SingleTickerProviderStat
             ..setEntry(3, 2, 0.001)
             ..rotateY(_animationController.value * 3.1416),
           alignment: Alignment.center,
-          child: _isFront ? _buildFront(note) : _buildBack(note),
+          child: _isFront ? _buildFront(note, folderName) : _buildBack(note, folderName),
         );
       },
     );
   }
 
-  Widget _buildFront(Map<String, dynamic> note) {
-    return _buildCard(note["frontText"] ?? "Ön Yüz", true);
+  Widget _buildFront(Map<String, dynamic> note, String folderName) {
+    return _buildCard(note["frontText"] ?? "Ön Yüz", true, folderName);
   }
 
-  Widget _buildBack(Map<String, dynamic> note) {
-    return _buildCard(note["backText"] ?? "Arka Yüz", true);
+  Widget _buildBack(Map<String, dynamic> note, String folderName) {
+    return _buildCard(note["backText"] ?? "Arka Yüz", true, folderName);
   }
 
-  Widget _buildCard(String text, bool isTopCard) {
+  
+  Widget _buildCard(String text, bool isTopCard, String folderName) {
+    double screenWidth = MediaQuery.of(context).size.width;
+    double screenHeight = MediaQuery.of(context).size.height;
+
     return Container(
-      width: 250,
-      height: 350,
+      width: screenWidth * 0.90, // 250 / 400 = 0.625
+      height: screenHeight * 0.60, // 350 / 800 = 0.4375
       decoration: BoxDecoration(
         color: Colors.brown.shade100,
-        borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: Colors.brown, width: 3),
+        borderRadius: BorderRadius.circular(screenWidth * 0.0375), // 15 / 400 = 0.0375
+        border: Border.all(color: Colors.brown, width: screenWidth * 0.0075), // 3 / 400 = 0.0075
         boxShadow: [
-          const BoxShadow(
+          BoxShadow(
             color: Colors.black26,
-            blurRadius: 10,
-            spreadRadius: 2,
-            offset: Offset(3, 6),
+            blurRadius: screenWidth * 0.025, // 10 / 400 = 0.025
+            spreadRadius: screenWidth * 0.005, // 2 / 400 = 0.005
+            offset: Offset(screenWidth * 0.0075, screenHeight * 0.015), // (3 / 400, 6 / 800) = (0.0075, 0.015)
           ),
         ],
         image: const DecorationImage(
@@ -361,18 +367,36 @@ class _MyNotesPageState extends State<MyNotesPage> with SingleTickerProviderStat
           fit: BoxFit.cover,
         ),
       ),
-      child: isTopCard && _isTextVisible
-          ? Center(
+      child: Stack(
+        children: [
+          if (isTopCard && _isTextVisible)
+            Center(
               child: Padding(
-                padding: const EdgeInsets.all(16.0),
+                padding: EdgeInsets.all(screenWidth * 0.04), // 16 / 400 = 0.04
                 child: Text(
                   text,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  style: TextStyle(fontSize: screenWidth * 0.05, fontWeight: FontWeight.bold), // 20 / 400 = 0.05
                 ),
               ),
-            )
-          : null,
+            ),
+          Positioned(
+            top: screenHeight * 0.02, // 16 / 800 = 0.02
+            right: screenWidth * 0.15, // 16 / 400 = 0.02
+            child: Opacity(
+              opacity: 0.5, // Şeffaflık
+              child: Text(
+                folderName.isEmpty ? "(default)" :"($folderName)",
+                style: TextStyle(
+                  fontSize: screenWidth * 0.04, // 16 / 400 = 0.04
+                  fontStyle: FontStyle.italic,
+                  color: Colors.black,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
