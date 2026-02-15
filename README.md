@@ -85,7 +85,7 @@ flutter run
 
 ## Önemli Not
 
-⚠️ Kaydedilen bilgiler uygulama silinince kaybolacaktır. Düzenli olarak notlarınızı dışa aktararak yedekleyin!
+⚠️ Kaydedilen bilgiler uygulama kaldırıldığında (uninstall) kaybolacaktır. Düzenli olarak notlarınızı "Notları Dışa Aktar" özelliğini kullanarak yedekleyin!
 
 ## Geliştirme
 

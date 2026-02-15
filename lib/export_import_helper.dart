@@ -17,7 +17,7 @@ class ExportImportHelper {
       Map<String, dynamic> exportData = {
         "notes": notes,
         "folders": folders,
-        "export_date": DateTime.now().toIso8601String(),
+        "exportDate": DateTime.now().toIso8601String(),
       };
 
       String jsonString = jsonEncode(exportData);
@@ -64,7 +64,9 @@ class ExportImportHelper {
             return AlertDialog(
               title: Text("İçe Aktarmayı Onayla"),
               content: Text(
-                "Bu işlem mevcut notlarınızı ekleyecek. Devam etmek istiyor musunuz?",
+                "Bu işlem yedeklenmiş notları mevcut notlarınıza ekleyecektir.\n\n"
+                "⚠️ Not: Aynı notlar tekrar eklenirse yinelenen kayıtlar oluşabilir.\n\n"
+                "Devam etmek istiyor musunuz?",
               ),
               actions: [
                 TextButton(

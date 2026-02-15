@@ -21,6 +21,9 @@ class StudyModePage extends StatefulWidget {
 
 class _StudyModePageState extends State<StudyModePage>
     with SingleTickerProviderStateMixin {
+  static const double _flipThreshold = 0.50;
+  static const String _mixedFolderName = 'Karışık';
+  
   List<Map<String, dynamic>> _notes = [];
   List<Map<String, dynamic>> _studyQueue = [];
   int currentIndex = 0;
@@ -47,7 +50,7 @@ class _StudyModePageState extends State<StudyModePage>
         }
       })
       ..addListener(() {
-        if (_animationController.value > 0.50) {
+        if (_animationController.value > _flipThreshold) {
           setState(() {
             _isTextVisible = false;
           });
@@ -74,7 +77,7 @@ class _StudyModePageState extends State<StudyModePage>
         notesJson.map((note) => jsonDecode(note) as Map<String, dynamic>).toList();
 
     // Filter by folder if specified
-    if (widget.folderName != null && widget.folderName != "Karışık") {
+    if (widget.folderName != null && widget.folderName != _mixedFolderName) {
       allNotes = allNotes.where((note) => note['folder'] == widget.folderName).toList();
     }
 
@@ -251,7 +254,7 @@ class _StudyModePageState extends State<StudyModePage>
                 return Transform(
                   transform: Matrix4.identity()
                     ..setEntry(3, 2, 0.001)
-                    ..rotateY(_animationController.value * 3.1416),
+                    ..rotateY(_animationController.value * pi),
                   alignment: Alignment.center,
                   child: _isFront
                       ? _buildCardContent(
@@ -260,7 +263,7 @@ class _StudyModePageState extends State<StudyModePage>
                           "Dokunarak çevir",
                         )
                       : Transform(
-                          transform: Matrix4.rotationY(3.1416),
+                          transform: Matrix4.rotationY(pi),
                           alignment: Alignment.center,
                           child: _buildCardContent(
                             currentNote['backText'] ?? '',

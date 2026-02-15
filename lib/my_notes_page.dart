@@ -130,6 +130,7 @@ class _MyNotesPageState extends State<MyNotesPage> with SingleTickerProviderStat
           isEditMode: true,
           noteIndex: currentIndex,
           folderName: widget.folderName,
+          color: _notes[currentIndex]['color'],
         ),
       ),
     ).then((updatedNotes) {

@@ -62,7 +62,8 @@ class _SearchPageState extends State<SearchPage> {
     int originalIndex = _allNotes.indexWhere((n) => 
       n['frontText'] == note['frontText'] && 
       n['backText'] == note['backText'] && 
-      n['folder'] == note['folder']
+      n['folder'] == note['folder'] &&
+      n['color'] == note['color']
     );
     
     Navigator.push(
@@ -76,6 +77,7 @@ class _SearchPageState extends State<SearchPage> {
           isEditMode: true,
           noteIndex: originalIndex,
           folderName: note['folder'],
+          color: note['color'],
         ),
       ),
     ).then((_) => _loadNotes());

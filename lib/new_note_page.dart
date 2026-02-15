@@ -10,7 +10,8 @@ class NewNotePage extends StatefulWidget {
   final String? backText;
   final bool isEditMode;
   final int? noteIndex;
-  final String? folderName; // Yeni parametre
+  final String? folderName;
+  final String? color;
 
   NewNotePage({
     required this.screenWidth,
@@ -19,7 +20,8 @@ class NewNotePage extends StatefulWidget {
     this.backText,
     this.isEditMode = false,
     this.noteIndex,
-    this.folderName, // Yeni parametre
+    this.folderName,
+    this.color,
   });
 
   @override
@@ -66,6 +68,7 @@ class _NewNotePageState extends State<NewNotePage> with SingleTickerProviderStat
     if (widget.isEditMode) {
       _frontController.text = widget.frontText ?? '';
       _backController.text = widget.backText ?? '';
+      _selectedColor = widget.color ?? 'default';
     }
 
     _loadFolders();
