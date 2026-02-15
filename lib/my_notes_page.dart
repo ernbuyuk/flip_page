@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'dart:math'; // Import dart:math for shuffling
 import 'new_note_page.dart';
+import 'package:share_plus/share_plus.dart';
 
 class MyNotesPage extends StatefulWidget {
   final bool isEditMode;
@@ -149,6 +150,21 @@ class _MyNotesPageState extends State<MyNotesPage> with SingleTickerProviderStat
     prefs.setStringList("notes", notesJson);
   }
 
+  void _shareNote() {
+    if (_notes.isNotEmpty) {
+      Map<String, dynamic> note = _notes[currentIndex];
+      String shareText = '''
+FlipPage Notu
+
+Ön Yüz: ${note['frontText'] ?? ''}
+
+Arka Yüz: ${note['backText'] ?? ''}
+${note['folder'] != null && note['folder'].isNotEmpty ? '\nKlasör: ${note['folder']}' : ''}
+      ''';
+      Share.share(shareText, subject: 'FlipPage Notu');
+    }
+  }
+
   @override
   void dispose() {
     _animationController.dispose();
@@ -228,19 +244,19 @@ class _MyNotesPageState extends State<MyNotesPage> with SingleTickerProviderStat
                     GestureDetector(
                       onTap: _deleteNote,
                       child: Container(
-                        padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.05),
+                        padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.04, vertical: screenHeight * 0.01),
                         decoration: BoxDecoration(
                           color: Color(0xFFF5F0EB), // Arka fonla aynı renk
                           borderRadius: BorderRadius.circular(5),
                         ),
                         child: Row(
                           children: [
-                            Image.asset('assets/delete.png', width: screenWidth * 0.16, height: screenHeight * 0.08), // Soldaki görsel
-                            SizedBox(width: screenWidth * 0.02), // Boşluk
+                            Image.asset('assets/delete.png', width: screenWidth * 0.12, height: screenHeight * 0.06),
+                            SizedBox(width: screenWidth * 0.015),
                             Text(
                               "Sil",
                               style: TextStyle(
-                                fontSize: screenWidth * 0.09375,
+                                fontSize: screenWidth * 0.07,
                                 color: Colors.black,
                                 fontWeight: FontWeight.w800,
                                 fontFamily: "Cursive",
@@ -250,23 +266,49 @@ class _MyNotesPageState extends State<MyNotesPage> with SingleTickerProviderStat
                         ),
                       ),
                     ),
-                    SizedBox(width: screenWidth * 0.05),
+                    SizedBox(width: screenWidth * 0.03),
+                    GestureDetector(
+                      onTap: _shareNote,
+                      child: Container(
+                        padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.04, vertical: screenHeight * 0.01),
+                        decoration: BoxDecoration(
+                          color: Color(0xFFF5F0EB),
+                          borderRadius: BorderRadius.circular(5),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.share, size: screenWidth * 0.12, color: Colors.brown),
+                            SizedBox(width: screenWidth * 0.015),
+                            Text(
+                              "Paylaş",
+                              style: TextStyle(
+                                fontSize: screenWidth * 0.07,
+                                color: Colors.black,
+                                fontWeight: FontWeight.w800,
+                                fontFamily: "Cursive",
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: screenWidth * 0.03),
                     GestureDetector(
                       onTap: _editNote,
                       child: Container(
-                        padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.05),
+                        padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.04, vertical: screenHeight * 0.01),
                         decoration: BoxDecoration(
                           color: Color(0xFFF5F0EB), // Arka fonla aynı renk
                           borderRadius: BorderRadius.circular(5),
                         ),
                         child: Row(
                           children: [
-                            Image.asset('assets/edit.png', width: screenWidth * 0.16, height: screenHeight * 0.08), // Soldaki görsel
-                            SizedBox(width: screenWidth * 0.02), // Boşluk
+                            Image.asset('assets/edit.png', width: screenWidth * 0.12, height: screenHeight * 0.06),
+                            SizedBox(width: screenWidth * 0.015),
                             Text(
                               "Düzenle",
                               style: TextStyle(
-                                fontSize: screenWidth * 0.09375,
+                                fontSize: screenWidth * 0.07,
                                 color: Colors.black,
                                 fontWeight: FontWeight.w800,
                                 fontFamily: "Cursive",
