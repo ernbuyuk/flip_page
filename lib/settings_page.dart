@@ -2,12 +2,50 @@ import 'package:flutter/material.dart';
 import 'export_import_helper.dart';
 import 'statistics_page.dart';
 import 'search_page.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-class SettingsPage extends StatelessWidget {
+class SettingsPage extends StatefulWidget {
   final double screenWidth;
   final double screenHeight;
 
   SettingsPage({required this.screenWidth, required this.screenHeight});
+
+  @override
+  _SettingsPageState createState() => _SettingsPageState();
+}
+
+class _SettingsPageState extends State<SettingsPage> {
+  bool _isDarkMode = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadThemePreference();
+  }
+
+  Future<void> _loadThemePreference() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _isDarkMode = prefs.getBool('isDarkMode') ?? false;
+    });
+  }
+
+  Future<void> _toggleDarkMode(bool value) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('isDarkMode', value);
+    setState(() {
+      _isDarkMode = value;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          value
+              ? "Karanlık mod etkinleştirildi (Uygulamayı yeniden başlatın)"
+              : "Aydınlık mod etkinleştirildi (Uygulamayı yeniden başlatın)",
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -17,18 +55,18 @@ class SettingsPage extends StatelessWidget {
         children: [
           Padding(
             padding: EdgeInsets.only(
-              top: screenHeight * 0.04,
-              left: screenWidth * 0.05,
-              right: screenWidth * 0.05,
+              top: widget.screenHeight * 0.04,
+              left: widget.screenWidth * 0.05,
+              right: widget.screenWidth * 0.05,
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                SizedBox(width: screenWidth * 0.075),
+                SizedBox(width: widget.screenWidth * 0.075),
                 Text(
                   "Ayarlar",
                   style: TextStyle(
-                    fontSize: screenWidth * 0.1125,
+                    fontSize: widget.screenWidth * 0.1125,
                     fontWeight: FontWeight.w800,
                     fontFamily: "Cursive",
                   ),
@@ -39,18 +77,56 @@ class SettingsPage extends StatelessWidget {
                   },
                   child: Image.asset(
                     'assets/exit.png',
-                    width: screenWidth * 0.09375,
-                    height: screenHeight * 0.06,
+                    width: widget.screenWidth * 0.09375,
+                    height: widget.screenHeight * 0.06,
                   ),
                 ),
               ],
             ),
           ),
-          SizedBox(height: screenHeight * 0.05),
+          SizedBox(height: widget.screenHeight * 0.05),
           Expanded(
             child: ListView(
-              padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.05),
+              padding: EdgeInsets.symmetric(horizontal: widget.screenWidth * 0.05),
               children: [
+                // Dark Mode Toggle
+                Card(
+                  elevation: 3,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: SwitchListTile(
+                    secondary: Container(
+                      padding: EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.indigo.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(
+                        _isDarkMode ? Icons.dark_mode : Icons.light_mode,
+                        color: Colors.indigo,
+                        size: widget.screenWidth * 0.08,
+                      ),
+                    ),
+                    title: Text(
+                      "Karanlık Mod",
+                      style: TextStyle(
+                        fontSize: widget.screenWidth * 0.045,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    subtitle: Text(
+                      "Göz dostu karanlık tema",
+                      style: TextStyle(
+                        fontSize: widget.screenWidth * 0.035,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                    value: _isDarkMode,
+                    onChanged: _toggleDarkMode,
+                  ),
+                ),
+                SizedBox(height: widget.screenHeight * 0.02),
                 _buildSettingsCard(
                   context,
                   "Not Ara",
@@ -62,14 +138,14 @@ class SettingsPage extends StatelessWidget {
                       context,
                       MaterialPageRoute(
                         builder: (context) => SearchPage(
-                          screenWidth: screenWidth,
-                          screenHeight: screenHeight,
+                          screenWidth: widget.screenWidth,
+                          screenHeight: widget.screenHeight,
                         ),
                       ),
                     );
                   },
                 ),
-                SizedBox(height: screenHeight * 0.02),
+                SizedBox(height: widget.screenHeight * 0.02),
                 _buildSettingsCard(
                   context,
                   "İstatistikler",
@@ -81,14 +157,14 @@ class SettingsPage extends StatelessWidget {
                       context,
                       MaterialPageRoute(
                         builder: (context) => StatisticsPage(
-                          screenWidth: screenWidth,
-                          screenHeight: screenHeight,
+                          screenWidth: widget.screenWidth,
+                          screenHeight: widget.screenHeight,
                         ),
                       ),
                     );
                   },
                 ),
-                SizedBox(height: screenHeight * 0.02),
+                SizedBox(height: widget.screenHeight * 0.02),
                 _buildSettingsCard(
                   context,
                   "Notları Dışa Aktar",
@@ -99,7 +175,7 @@ class SettingsPage extends StatelessWidget {
                     await ExportImportHelper.exportNotes(context);
                   },
                 ),
-                SizedBox(height: screenHeight * 0.02),
+                SizedBox(height: widget.screenHeight * 0.02),
                 _buildSettingsCard(
                   context,
                   "Notları İçe Aktar",
@@ -110,14 +186,14 @@ class SettingsPage extends StatelessWidget {
                     await ExportImportHelper.importNotes(context);
                   },
                 ),
-                SizedBox(height: screenHeight * 0.03),
+                SizedBox(height: widget.screenHeight * 0.03),
                 Card(
                   elevation: 2,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Padding(
-                    padding: EdgeInsets.all(screenWidth * 0.05),
+                    padding: EdgeInsets.all(widget.screenWidth * 0.05),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -128,7 +204,7 @@ class SettingsPage extends StatelessWidget {
                             Text(
                               "Hakkında",
                               style: TextStyle(
-                                fontSize: screenWidth * 0.05,
+                                fontSize: widget.screenWidth * 0.05,
                                 fontWeight: FontWeight.w700,
                               ),
                             ),
@@ -138,7 +214,7 @@ class SettingsPage extends StatelessWidget {
                         Text(
                           "FlipPage v1.0.0",
                           style: TextStyle(
-                            fontSize: screenWidth * 0.04,
+                            fontSize: widget.screenWidth * 0.04,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -146,7 +222,7 @@ class SettingsPage extends StatelessWidget {
                         Text(
                           "Flashcard tarzı not tutma uygulaması",
                           style: TextStyle(
-                            fontSize: screenWidth * 0.035,
+                            fontSize: widget.screenWidth * 0.035,
                             color: Colors.grey[600],
                           ),
                         ),
@@ -186,26 +262,26 @@ class SettingsPage extends StatelessWidget {
           child: Icon(
             icon,
             color: color,
-            size: screenWidth * 0.08,
+            size: widget.screenWidth * 0.08,
           ),
         ),
         title: Text(
           title,
           style: TextStyle(
-            fontSize: screenWidth * 0.045,
+            fontSize: widget.screenWidth * 0.045,
             fontWeight: FontWeight.w700,
           ),
         ),
         subtitle: Text(
           subtitle,
           style: TextStyle(
-            fontSize: screenWidth * 0.035,
+            fontSize: widget.screenWidth * 0.035,
             color: Colors.grey[600],
           ),
         ),
         trailing: Icon(
           Icons.arrow_forward_ios,
-          size: screenWidth * 0.04,
+          size: widget.screenWidth * 0.04,
           color: Colors.grey,
         ),
       ),

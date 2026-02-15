@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert'; // JSON işlemleri için
+import 'theme_provider.dart';
 
 class NewNotePage extends StatefulWidget {
   final double screenWidth;
@@ -32,6 +33,7 @@ class _NewNotePageState extends State<NewNotePage> with SingleTickerProviderStat
   final TextEditingController _backController = TextEditingController();
   late AnimationController _animationController;
   List<String> _folders = [];
+  String _selectedColor = 'default';
 
   @override
   void initState() {
@@ -99,7 +101,7 @@ class _NewNotePageState extends State<NewNotePage> with SingleTickerProviderStat
       "frontText": _frontController.text,
       "backText": _backController.text,
       "folder": widget.folderName ?? "", // Kategori olarak klasör adı ekleniyor
-      "color": "", // Renk boş olarak ekleniyor
+      "color": _selectedColor, // Renk seçimi ekleniyor
     };
     String noteJson = jsonEncode(noteData);
 
@@ -146,7 +148,7 @@ class _NewNotePageState extends State<NewNotePage> with SingleTickerProviderStat
       "frontText": _frontController.text,
       "backText": _backController.text,
       "folder": folderName, // Kategori olarak klasör adı ekleniyor
-      "color": "", // Renk boş olarak ekleniyor
+      "color": _selectedColor, // Renk seçimi ekleniyor
     };
     String noteJson = jsonEncode(noteData);
 
@@ -363,6 +365,57 @@ class _NewNotePageState extends State<NewNotePage> with SingleTickerProviderStat
               ),
             ),
             SizedBox(height: screenHeight * 0.01),
+            // Color picker
+            Container(
+              padding: EdgeInsets.symmetric(horizontal: widget.screenWidth * 0.05),
+              child: Column(
+                children: [
+                  Text(
+                    "Kart Rengi",
+                    style: TextStyle(
+                      fontSize: widget.screenWidth * 0.05,
+                      fontWeight: FontWeight.w700,
+                      fontFamily: "Cursive",
+                    ),
+                  ),
+                  SizedBox(height: 10),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: NoteColor.colorNames.map((colorName) {
+                        return GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              _selectedColor = colorName;
+                            });
+                          },
+                          child: Container(
+                            margin: EdgeInsets.symmetric(horizontal: 5),
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: NoteColor.getColor(colorName),
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: _selectedColor == colorName
+                                    ? Colors.brown
+                                    : Colors.grey,
+                                width: _selectedColor == colorName ? 3 : 1,
+                              ),
+                            ),
+                            child: _selectedColor == colorName
+                                ? Icon(Icons.check, color: Colors.brown)
+                                : null,
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(height: screenHeight * 0.01),
             GestureDetector(
               onTap: () {
                 if (_folders.isEmpty) {
@@ -416,9 +469,14 @@ class _NewNotePageState extends State<NewNotePage> with SingleTickerProviderStat
       width: screenWidth * 0.95,
       height: screenHeight * 0.65,
       decoration: BoxDecoration(
+        color: NoteColor.getColor(_selectedColor),
         image: DecorationImage(
           image: AssetImage("assets/card_template.png"),
           fit: BoxFit.cover,
+          colorFilter: ColorFilter.mode(
+            NoteColor.getColor(_selectedColor).withOpacity(0.3),
+            BlendMode.softLight,
+          ),
         ),
         borderRadius: BorderRadius.circular(15),
       ),
@@ -447,9 +505,14 @@ class _NewNotePageState extends State<NewNotePage> with SingleTickerProviderStat
       width: screenWidth * 0.95,
       height: screenHeight * 0.65,
       decoration: BoxDecoration(
+        color: NoteColor.getColor(_selectedColor),
         image: DecorationImage(
           image: AssetImage("assets/card_template.png"),
           fit: BoxFit.cover,
+          colorFilter: ColorFilter.mode(
+            NoteColor.getColor(_selectedColor).withOpacity(0.3),
+            BlendMode.softLight,
+          ),
         ),
         borderRadius: BorderRadius.circular(15),
       ),
