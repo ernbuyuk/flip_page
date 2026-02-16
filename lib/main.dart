@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'new_note_page.dart';
 import 'my_notes_main_page.dart';
+import 'settings_page.dart';
 
 void main() {
   runApp(FlipPageApp());
@@ -31,11 +32,47 @@ class HomePage extends StatelessWidget {
       body: Column(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
+          // Settings button at the top right
+          Padding(
+            padding: EdgeInsets.only(
+              top: screenHeight * 0.04,
+              right: screenWidth * 0.05,
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => SettingsPage(
+                          screenWidth: screenWidth,
+                          screenHeight: screenHeight,
+                        ),
+                      ),
+                    );
+                  },
+                  child: Container(
+                    padding: EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.brown.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(
+                      Icons.settings,
+                      color: Colors.brown,
+                      size: screenWidth * 0.08,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
           Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                SizedBox(height: screenHeight * 0.078125),
                 Image.asset("assets/typewriter.png", width: screenWidth * 0.375),
                 SizedBox(height: screenHeight * 0.0625),
                 Padding(
