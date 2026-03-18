@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'new_note_page.dart';
+import 'navigation_helper.dart';
 
 class SearchPage extends StatefulWidget {
   final double screenWidth;
@@ -86,7 +87,7 @@ class _SearchPageState extends State<SearchPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFFF5F0EB),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Column(
         children: [
           Padding(
@@ -109,7 +110,7 @@ class _SearchPageState extends State<SearchPage> {
                 ),
                 GestureDetector(
                   onTap: () {
-                    Navigator.pop(context);
+                    closeOrGoHome(context);
                   },
                   child: Image.asset(
                     'assets/exit.png',

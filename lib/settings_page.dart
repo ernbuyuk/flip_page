@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'export_import_helper.dart';
 import 'statistics_page.dart';
 import 'search_page.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'navigation_helper.dart';
+import 'theme_provider.dart';
 
 class SettingsPage extends StatefulWidget {
   final double screenWidth;
@@ -16,41 +17,61 @@ class SettingsPage extends StatefulWidget {
 
 class _SettingsPageState extends State<SettingsPage> {
   bool _isDarkMode = false;
+  String _selectedLabelFont = AppFontSettings.defaultFontFamily;
 
   @override
   void initState() {
     super.initState();
     _loadThemePreference();
+    _loadLabelFontPreference();
   }
 
   Future<void> _loadThemePreference() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await AppThemeController.load();
+    if (!mounted) return;
     setState(() {
-      _isDarkMode = prefs.getBool('isDarkMode') ?? false;
+      _isDarkMode = AppThemeController.isDarkMode;
     });
   }
 
   Future<void> _toggleDarkMode(bool value) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('isDarkMode', value);
+    await AppThemeController.setDarkMode(value);
+    if (!mounted) return;
     setState(() {
       _isDarkMode = value;
     });
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          value
-              ? "Karanlık mod etkinleştirildi (Uygulamayı yeniden başlatın)"
-              : "Aydınlık mod etkinleştirildi (Uygulamayı yeniden başlatın)",
+          value ? "Karanlik mod etkinlestirildi." : "Aydinlik mod etkinlestirildi.",
         ),
       ),
+    );
+  }
+
+  Future<void> _loadLabelFontPreference() async {
+    await AppFontSettings.load();
+    if (!mounted) return;
+    setState(() {
+      _selectedLabelFont = AppFontSettings.labelFontFamily;
+    });
+  }
+
+  Future<void> _changeLabelFont(String fontFamily) async {
+    await AppFontSettings.save(fontFamily);
+    if (!mounted) return;
+    setState(() {
+      _selectedLabelFont = fontFamily;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Yazi tipi guncellendi.")),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFFF5F0EB),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Column(
         children: [
           Padding(
@@ -68,12 +89,12 @@ class _SettingsPageState extends State<SettingsPage> {
                   style: TextStyle(
                     fontSize: widget.screenWidth * 0.1125,
                     fontWeight: FontWeight.w800,
-                    fontFamily: "Cursive",
+                    fontFamily: AppFontSettings.labelFontFamily,
                   ),
                 ),
                 GestureDetector(
                   onTap: () {
-                    Navigator.pop(context);
+                    closeOrGoHome(context);
                   },
                   child: Image.asset(
                     'assets/exit.png',
@@ -99,7 +120,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     secondary: Container(
                       padding: EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: Colors.indigo.withOpacity(0.2),
+                        color: Colors.indigo.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Icon(
@@ -113,17 +134,75 @@ class _SettingsPageState extends State<SettingsPage> {
                       style: TextStyle(
                         fontSize: widget.screenWidth * 0.045,
                         fontWeight: FontWeight.w700,
+                        fontFamily: AppFontSettings.labelFontFamily,
                       ),
                     ),
                     subtitle: Text(
                       "Göz dostu karanlık tema",
                       style: TextStyle(
                         fontSize: widget.screenWidth * 0.035,
-                        color: Colors.grey[600],
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
                     value: _isDarkMode,
                     onChanged: _toggleDarkMode,
+                  ),
+                ),
+                SizedBox(height: widget.screenHeight * 0.02),
+                Card(
+                  elevation: 3,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: ListTile(
+                    leading: Container(
+                      padding: EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.teal.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(
+                        Icons.text_fields,
+                        color: Colors.teal,
+                        size: widget.screenWidth * 0.08,
+                      ),
+                    ),
+                    title: Text(
+                      "Yazi Tipi",
+                      style: TextStyle(
+                        fontSize: widget.screenWidth * 0.045,
+                        fontWeight: FontWeight.w700,
+                        fontFamily: AppFontSettings.labelFontFamily,
+                      ),
+                    ),
+                    subtitle: Text(
+                      "Buton ve baslik yazilarini degistir",
+                      style: TextStyle(
+                        fontSize: widget.screenWidth * 0.035,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    trailing: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: _selectedLabelFont,
+                        items: AppFontSettings.availableFonts.entries
+                            .map(
+                              (entry) => DropdownMenuItem<String>(
+                                value: entry.key,
+                                child: Text(
+                                  entry.value,
+                                  style: TextStyle(fontFamily: entry.key),
+                                ),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (value) {
+                          if (value != null) {
+                            _changeLabelFont(value);
+                          }
+                        },
+                      ),
+                    ),
                   ),
                 ),
                 SizedBox(height: widget.screenHeight * 0.02),
@@ -206,16 +285,18 @@ class _SettingsPageState extends State<SettingsPage> {
                               style: TextStyle(
                                 fontSize: widget.screenWidth * 0.05,
                                 fontWeight: FontWeight.w700,
+                                fontFamily: AppFontSettings.labelFontFamily,
                               ),
                             ),
                           ],
                         ),
                         SizedBox(height: 10),
                         Text(
-                          "FlipPage v1.0.0",
+                          "FlipPage v1.1.0",
                           style: TextStyle(
                             fontSize: widget.screenWidth * 0.04,
                             fontWeight: FontWeight.w600,
+                            fontFamily: AppFontSettings.labelFontFamily,
                           ),
                         ),
                         SizedBox(height: 5),
@@ -223,7 +304,7 @@ class _SettingsPageState extends State<SettingsPage> {
                           "Flashcard tarzı not tutma uygulaması",
                           style: TextStyle(
                             fontSize: widget.screenWidth * 0.035,
-                            color: Colors.grey[600],
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                         ),
                       ],
@@ -256,7 +337,7 @@ class _SettingsPageState extends State<SettingsPage> {
         leading: Container(
           padding: EdgeInsets.all(10),
           decoration: BoxDecoration(
-            color: color.withOpacity(0.2),
+            color: color.withValues(alpha: 0.2),
             borderRadius: BorderRadius.circular(10),
           ),
           child: Icon(
@@ -270,19 +351,20 @@ class _SettingsPageState extends State<SettingsPage> {
           style: TextStyle(
             fontSize: widget.screenWidth * 0.045,
             fontWeight: FontWeight.w700,
+            fontFamily: AppFontSettings.labelFontFamily,
           ),
         ),
         subtitle: Text(
           subtitle,
           style: TextStyle(
             fontSize: widget.screenWidth * 0.035,
-            color: Colors.grey[600],
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
         ),
         trailing: Icon(
           Icons.arrow_forward_ios,
           size: widget.screenWidth * 0.04,
-          color: Colors.grey,
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
         ),
       ),
     );

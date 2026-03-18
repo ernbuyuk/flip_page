@@ -87,7 +87,23 @@ flutter run
 
 ⚠️ Kaydedilen bilgiler uygulama kaldırıldığında (uninstall) kaybolacaktır. Düzenli olarak notlarınızı "Notları Dışa Aktar" özelliğini kullanarak yedekleyin!
 
-## Geliştirme
+## Android 15 ve 16 KB Notu
+
+- Proje Android tarafinda `compileSdk = 36` ile derlenir.
+- Uygulama yalnızca dikey (`portrait`) kullanıma kilitlidir.
+- Android 15 icin edge-to-edge etkinlestirme `MainActivity` icinde `EdgeToEdge.enable(this)` ile yapilir.
+
+Release almadan once asagidaki kontrolleri calistirin:
+
+```bash
+flutter clean
+flutter pub get
+flutter build appbundle --release
+```
+
+16 KB page-size uyumlulugu icin, final AAB dosyasini Android 15 (API 35+) cihaz/emulator uzerinde acilis ve temel akislarda test edin. Flutter/engine kaynakli native kutuphane uyumsuzlugu gorurseniz Flutter SDK'yi guncel stable surume yukselterek yeniden release alin.
+
+## Gelistirme
 
 Bu proje Flutter ile geliştirilmiştir. Katkıda bulunmak için:
 

@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'dart:math'; // Import dart:math for shuffling
-import 'new_note_page.dart';
 import 'package:share_plus/share_plus.dart';
+import 'new_note_page.dart';
+import 'study_mode_page.dart';
+import 'navigation_helper.dart';
+import 'theme_provider.dart';
 
 class MyNotesPage extends StatefulWidget {
   final bool isEditMode;
@@ -166,6 +169,19 @@ ${note['folder'] != null && note['folder'].isNotEmpty ? '\nKlasör: ${note['fold
     }
   }
 
+  void _openStudyMode() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => StudyModePage(
+          screenWidth: MediaQuery.of(context).size.width,
+          screenHeight: MediaQuery.of(context).size.height,
+          folderName: widget.folderName ?? "Karışık",
+        ),
+      ),
+    );
+  }
+
   @override
   void dispose() {
     _animationController.dispose();
@@ -178,7 +194,7 @@ ${note['folder'] != null && note['folder'].isNotEmpty ? '\nKlasör: ${note['fold
     double screenWidth = MediaQuery.of(context).size.width;
 
     return Scaffold(
-      backgroundColor: Color(0xFFF5F0EB),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.start,
@@ -206,7 +222,7 @@ ${note['folder'] != null && note['folder'].isNotEmpty ? '\nKlasör: ${note['fold
                   ),
                   GestureDetector(
                     onTap: () {
-                      Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
+                      closeOrGoHome(context);
                     },
                     child: Image.asset(
                       'assets/exit.png',
@@ -247,7 +263,7 @@ ${note['folder'] != null && note['folder'].isNotEmpty ? '\nKlasör: ${note['fold
                       child: Container(
                         padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.04, vertical: screenHeight * 0.01),
                         decoration: BoxDecoration(
-                          color: Color(0xFFF5F0EB), // Arka fonla aynı renk
+                          color: Theme.of(context).scaffoldBackgroundColor,
                           borderRadius: BorderRadius.circular(5),
                         ),
                         child: Row(
@@ -258,7 +274,7 @@ ${note['folder'] != null && note['folder'].isNotEmpty ? '\nKlasör: ${note['fold
                               "Sil",
                               style: TextStyle(
                                 fontSize: screenWidth * 0.07,
-                                color: Colors.black,
+                                color: Theme.of(context).colorScheme.onSurface,
                                 fontWeight: FontWeight.w800,
                                 fontFamily: "Cursive",
                               ),
@@ -273,7 +289,7 @@ ${note['folder'] != null && note['folder'].isNotEmpty ? '\nKlasör: ${note['fold
                       child: Container(
                         padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.04, vertical: screenHeight * 0.01),
                         decoration: BoxDecoration(
-                          color: Color(0xFFF5F0EB),
+                          color: Theme.of(context).scaffoldBackgroundColor,
                           borderRadius: BorderRadius.circular(5),
                         ),
                         child: Row(
@@ -284,7 +300,7 @@ ${note['folder'] != null && note['folder'].isNotEmpty ? '\nKlasör: ${note['fold
                               "Paylaş",
                               style: TextStyle(
                                 fontSize: screenWidth * 0.07,
-                                color: Colors.black,
+                                color: Theme.of(context).colorScheme.onSurface,
                                 fontWeight: FontWeight.w800,
                                 fontFamily: "Cursive",
                               ),
@@ -299,7 +315,7 @@ ${note['folder'] != null && note['folder'].isNotEmpty ? '\nKlasör: ${note['fold
                       child: Container(
                         padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.04, vertical: screenHeight * 0.01),
                         decoration: BoxDecoration(
-                          color: Color(0xFFF5F0EB), // Arka fonla aynı renk
+                          color: Theme.of(context).scaffoldBackgroundColor,
                           borderRadius: BorderRadius.circular(5),
                         ),
                         child: Row(
@@ -310,7 +326,7 @@ ${note['folder'] != null && note['folder'].isNotEmpty ? '\nKlasör: ${note['fold
                               "Düzenle",
                               style: TextStyle(
                                 fontSize: screenWidth * 0.07,
-                                color: Colors.black,
+                                color: Theme.of(context).colorScheme.onSurface,
                                 fontWeight: FontWeight.w800,
                                 fontFamily: "Cursive",
                               ),
@@ -320,6 +336,36 @@ ${note['folder'] != null && note['folder'].isNotEmpty ? '\nKlasör: ${note['fold
                       ),
                     ),
                   ],
+                ),
+              )
+            else if (_notes.isNotEmpty)
+              Padding(
+                padding: EdgeInsets.only(bottom: screenHeight * 0.02),
+                child: GestureDetector(
+                  onTap: _openStudyMode,
+                  child: Container(
+                    padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.05, vertical: screenHeight * 0.01),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).scaffoldBackgroundColor,
+                      borderRadius: BorderRadius.circular(5),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Image.asset('assets/flip.png', width: screenWidth * 0.12, height: screenHeight * 0.06),
+                        SizedBox(width: screenWidth * 0.02),
+                        Text(
+                          "Çalışma Modu",
+                          style: TextStyle(
+                            fontSize: screenWidth * 0.07,
+                            color: Theme.of(context).colorScheme.onSurface,
+                            fontWeight: FontWeight.w800,
+                            fontFamily: AppFontSettings.labelFontFamily,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
           ],
@@ -433,7 +479,7 @@ ${note['folder'] != null && note['folder'].isNotEmpty ? '\nKlasör: ${note['fold
                 style: TextStyle(
                   fontSize: screenWidth * 0.04, // 16 / 400 = 0.04
                   fontStyle: FontStyle.italic,
-                  color: Colors.black,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
             ),
@@ -443,3 +489,4 @@ ${note['folder'] != null && note['folder'].isNotEmpty ? '\nKlasör: ${note['fold
     );
   }
 }
+

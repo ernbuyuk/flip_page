@@ -19,17 +19,13 @@ class StudyModePage extends StatefulWidget {
   _StudyModePageState createState() => _StudyModePageState();
 }
 
-class _StudyModePageState extends State<StudyModePage>
-    with SingleTickerProviderStateMixin {
-  static const double _flipThreshold = 0.50;
+class _StudyModePageState extends State<StudyModePage> {
   static const String _mixedFolderName = 'Karışık';
-  
+
   List<Map<String, dynamic>> _notes = [];
   List<Map<String, dynamic>> _studyQueue = [];
   int currentIndex = 0;
-  late AnimationController _animationController;
   bool _isFront = true;
-  bool _isTextVisible = true;
   int _correctCount = 0;
   int _incorrectCount = 0;
   bool _showResult = false;
@@ -37,36 +33,11 @@ class _StudyModePageState extends State<StudyModePage>
   @override
   void initState() {
     super.initState();
-    _animationController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 500),
-    )..addStatusListener((status) {
-        if (status == AnimationStatus.completed) {
-          setState(() {
-            _isFront = !_isFront;
-            _animationController.reset();
-            _isTextVisible = true;
-          });
-        }
-      })
-      ..addListener(() {
-        if (_animationController.value > _flipThreshold) {
-          setState(() {
-            _isTextVisible = false;
-          });
-        } else {
-          setState(() {
-            _isTextVisible = true;
-          });
-        }
-      });
-
     _loadNotes();
   }
 
   @override
   void dispose() {
-    _animationController.dispose();
     super.dispose();
   }
 
@@ -92,7 +63,7 @@ class _StudyModePageState extends State<StudyModePage>
 
   void _flipCard() {
     setState(() {
-      _animationController.forward();
+      _isFront = !_isFront;
     });
   }
 
@@ -119,7 +90,6 @@ class _StudyModePageState extends State<StudyModePage>
       setState(() {
         currentIndex++;
         _isFront = true;
-        _animationController.reset();
       });
     } else {
       setState(() {
@@ -148,12 +118,16 @@ class _StudyModePageState extends State<StudyModePage>
 
     if (_studyQueue.isEmpty) {
       return Scaffold(
-        backgroundColor: Color(0xFFF5F0EB),
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.inbox, size: 100, color: Colors.grey),
+              Icon(
+                Icons.inbox,
+                size: 100,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
               SizedBox(height: 20),
               Text(
                 "Çalışılacak not bulunamadı",
@@ -177,54 +151,76 @@ class _StudyModePageState extends State<StudyModePage>
     String cardColor = currentNote['color'] ?? 'default';
 
     return Scaffold(
-      backgroundColor: Color(0xFFF5F0EB),
-      body: Column(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      body: SafeArea(
+        child: Column(
         children: [
           // Header
           Padding(
             padding: EdgeInsets.only(
-              top: widget.screenHeight * 0.04,
+              top: widget.screenHeight * 0.01,
               left: widget.screenWidth * 0.05,
               right: widget.screenWidth * 0.05,
             ),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                GestureDetector(
-                  onTap: () => Navigator.pop(context),
-                  child: Icon(Icons.arrow_back, size: 30),
-                ),
-                Column(
-                  children: [
-                    Text(
-                      "Çalışma Modu",
-                      style: TextStyle(
-                        fontSize: widget.screenWidth * 0.08,
-                        fontWeight: FontWeight.w800,
-                        fontFamily: "Cursive",
-                      ),
+                SizedBox(
+                  width: widget.screenWidth * 0.11,
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      icon: Icon(Icons.arrow_back, size: widget.screenWidth * 0.075),
                     ),
-                    Text(
-                      "${currentIndex + 1} / ${_studyQueue.length}",
-                      style: TextStyle(
-                        fontSize: widget.screenWidth * 0.04,
-                        color: Colors.grey,
-                      ),
-                    ),
-                  ],
-                ),
-                Container(
-                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: Colors.green.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(15),
                   ),
-                  child: Text(
-                    "$_correctCount",
-                    style: TextStyle(
-                      fontSize: widget.screenWidth * 0.04,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.green,
+                ),
+                Expanded(
+                  child: Column(
+                    children: [
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          "Çalışma Modu",
+                          style: TextStyle(
+                            fontSize: widget.screenWidth * 0.08,
+                            fontWeight: FontWeight.w800,
+                            fontFamily: "Cursive",
+                          ),
+                        ),
+                      ),
+                      Text(
+                        "${currentIndex + 1} / ${_studyQueue.length}",
+                        style: TextStyle(
+                          fontSize: widget.screenWidth * 0.04,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(
+                  width: widget.screenWidth * 0.2,
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Container(
+                        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(15),
+                        ),
+                        child: Text(
+                          "$_correctCount",
+                          style: TextStyle(
+                            fontSize: widget.screenWidth * 0.04,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.green,
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -248,31 +244,12 @@ class _StudyModePageState extends State<StudyModePage>
           // Card
           GestureDetector(
             onTap: _flipCard,
-            child: AnimatedBuilder(
-              animation: _animationController,
-              builder: (context, child) {
-                return Transform(
-                  transform: Matrix4.identity()
-                    ..setEntry(3, 2, 0.001)
-                    ..rotateY(_animationController.value * pi),
-                  alignment: Alignment.center,
-                  child: _isFront
-                      ? _buildCardContent(
-                          currentNote['frontText'] ?? '',
-                          cardColor,
-                          "Dokunarak çevir",
-                        )
-                      : Transform(
-                          transform: Matrix4.rotationY(pi),
-                          alignment: Alignment.center,
-                          child: _buildCardContent(
-                            currentNote['backText'] ?? '',
-                            cardColor,
-                            "Cevabı biliyor musun?",
-                          ),
-                        ),
-                );
-              },
+            child: _buildCardContent(
+              _isFront
+                  ? (currentNote['frontText'] ?? '')
+                  : (currentNote['backText'] ?? ''),
+              cardColor,
+              _isFront ? "Dokunarak çevir" : "Cevabı biliyor musun?",
             ),
           ),
           SizedBox(height: widget.screenHeight * 0.03),
@@ -301,6 +278,7 @@ class _StudyModePageState extends State<StudyModePage>
             ),
         ],
       ),
+      ),
     );
   }
 
@@ -313,7 +291,7 @@ class _StudyModePageState extends State<StudyModePage>
         borderRadius: BorderRadius.circular(15),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.2),
+            color: Colors.black.withValues(alpha: 0.2),
             spreadRadius: 2,
             blurRadius: 10,
             offset: Offset(0, 3),
@@ -323,31 +301,30 @@ class _StudyModePageState extends State<StudyModePage>
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          if (_isTextVisible)
-            Expanded(
-              child: Center(
-                child: Padding(
-                  padding: EdgeInsets.all(widget.screenWidth * 0.05),
-                  child: SingleChildScrollView(
-                    child: Text(
-                      text,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: widget.screenWidth * 0.055,
-                        fontWeight: FontWeight.w600,
-                      ),
+          Expanded(
+            child: Center(
+              child: Padding(
+                padding: EdgeInsets.all(widget.screenWidth * 0.05),
+                child: SingleChildScrollView(
+                  child: Text(
+                    text,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: widget.screenWidth * 0.055,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
               ),
             ),
+          ),
           Padding(
             padding: EdgeInsets.only(bottom: 15),
             child: Text(
               hint,
               style: TextStyle(
                 fontSize: widget.screenWidth * 0.035,
-                color: Colors.grey[600],
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
                 fontStyle: FontStyle.italic,
               ),
             ),
@@ -390,7 +367,7 @@ class _StudyModePageState extends State<StudyModePage>
     double percentage = total > 0 ? (_correctCount / total * 100) : 0;
 
     return Scaffold(
-      backgroundColor: Color(0xFFF5F0EB),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Center(
         child: Padding(
           padding: EdgeInsets.all(widget.screenWidth * 0.05),
@@ -400,7 +377,9 @@ class _StudyModePageState extends State<StudyModePage>
               Icon(
                 percentage >= 70 ? Icons.emoji_events : Icons.refresh,
                 size: 100,
-                color: percentage >= 70 ? Colors.amber : Colors.grey,
+                color: percentage >= 70
+                    ? Colors.amber
+                    : Theme.of(context).colorScheme.onSurfaceVariant,
               ),
               SizedBox(height: 20),
               Text(
@@ -457,7 +436,7 @@ class _StudyModePageState extends State<StudyModePage>
     return Container(
       padding: EdgeInsets.all(15),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Row(

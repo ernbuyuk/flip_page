@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'my_notes_page.dart'; // Import the MyNotesPage
 import 'folder_page.dart'; // Import the FolderPage
-import 'study_mode_page.dart'; // Import the StudyModePage
+import 'navigation_helper.dart';
+import 'theme_provider.dart';
 
 class NewNotesMainPage extends StatelessWidget {
   final double screenWidth;
@@ -12,7 +13,7 @@ class NewNotesMainPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFFF5F0EB),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.start,
@@ -28,11 +29,11 @@ class NewNotesMainPage extends StatelessWidget {
                     style: TextStyle(
                         fontSize: screenWidth * 0.1125, // Increased font size
                         fontWeight: FontWeight.w800,
-                        fontFamily: "Cursive"),
+                        fontFamily: AppFontSettings.labelFontFamily),
                   ),
                   GestureDetector(
                     onTap: () {
-                      Navigator.pop(context);
+                      closeOrGoHome(context);
                     },
                     child: Image.asset(
                       'assets/exit.png',
@@ -47,8 +48,6 @@ class NewNotesMainPage extends StatelessWidget {
             _buildButton(context, 'Karışık', 'assets/karisik.png', MyNotesPage(), screenWidth, screenHeight),
             SizedBox(height: screenHeight * 0.03),
             _buildButton(context, 'Özel', 'assets/ozel.png', FolderPage(screenWidth: screenWidth, screenHeight: screenHeight), screenWidth, screenHeight),
-            SizedBox(height: screenHeight * 0.03),
-            _buildButton(context, 'Çalışma Modu', 'assets/flip.png', StudyModePage(screenWidth: screenWidth, screenHeight: screenHeight), screenWidth, screenHeight),
             SizedBox(height: screenHeight * 0.03),
             _buildButton(context, 'Düzenle', 'assets/duzenle.png', MyNotesPage(isEditMode: true), screenWidth, screenHeight),
           ],
@@ -65,7 +64,7 @@ class NewNotesMainPage extends StatelessWidget {
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.05, vertical: screenHeight * 0.01),
         decoration: BoxDecoration(
-          color: Color(0xFFF5F0EB),
+          color: Theme.of(context).scaffoldBackgroundColor,
           borderRadius: BorderRadius.circular(10),
         ),
         child: Row(
@@ -80,9 +79,9 @@ class NewNotesMainPage extends StatelessWidget {
               text,
               style: TextStyle(
                 fontSize: screenWidth * 0.09375,
-                color: Colors.black,
+                color: Theme.of(context).colorScheme.onSurface,
                 fontWeight: FontWeight.w700,
-                fontFamily: "Cursive",
+                fontFamily: AppFontSettings.labelFontFamily,
               ),
             ),
             SizedBox(width: screenWidth * 0.0125),

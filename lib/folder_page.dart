@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'my_notes_page.dart'; // Import MyNotesPage
+import 'my_notes_page.dart';
+import 'navigation_helper.dart';
 
 class FolderPage extends StatefulWidget {
   final double screenWidth;
@@ -112,7 +113,7 @@ class _FolderPageState extends State<FolderPage> {
     double screenWidth = widget.screenWidth;
 
     return Scaffold(
-      backgroundColor: Color(0xFFF5F0EB),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.start,
@@ -141,7 +142,7 @@ class _FolderPageState extends State<FolderPage> {
                   ),
                   GestureDetector(
                     onTap: () {
-                      Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
+                      closeOrGoHome(context);
                     },
                     child: Image.asset(
                       'assets/exit.png',
@@ -210,7 +211,7 @@ class _FolderPageState extends State<FolderPage> {
                 child: Container(
                   padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.05),
                   decoration: BoxDecoration(
-                    color: Color(0xFFF5F0EB), // Arka fonla aynı renk
+                    color: Theme.of(context).scaffoldBackgroundColor,
                     borderRadius: BorderRadius.circular(5),
                   ),
                   child: Row(
@@ -223,7 +224,7 @@ class _FolderPageState extends State<FolderPage> {
                         "Klasör Oluştur",
                         style: TextStyle(
                           fontSize: screenWidth * 0.09375,
-                          color: Colors.black,
+                          color: Theme.of(context).colorScheme.onSurface,
                           fontWeight: FontWeight.w800,
                           fontFamily: "Cursive",
                         ),

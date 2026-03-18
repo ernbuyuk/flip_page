@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'export_import_helper.dart';
+import 'navigation_helper.dart';
 
 class StatisticsPage extends StatefulWidget {
   final double screenWidth;
@@ -32,7 +33,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFFF5F0EB),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Column(
         children: [
           Padding(
@@ -55,7 +56,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
                 ),
                 GestureDetector(
                   onTap: () {
-                    Navigator.pop(context);
+                    closeOrGoHome(context);
                   },
                   child: Image.asset(
                     'assets/exit.png',
@@ -124,7 +125,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(15),
           gradient: LinearGradient(
-            colors: [color.withOpacity(0.7), color],
+            colors: [color.withValues(alpha: 0.7), color],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -157,7 +158,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
             Icon(
               icon,
               size: widget.screenWidth * 0.15,
-              color: Colors.white.withOpacity(0.8),
+              color: Colors.white.withValues(alpha: 0.8),
             ),
           ],
         ),

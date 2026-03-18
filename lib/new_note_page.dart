@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert'; // JSON işlemleri için
 import 'theme_provider.dart';
+import 'navigation_helper.dart';
 
 class NewNotePage extends StatefulWidget {
   final double screenWidth;
@@ -235,13 +236,13 @@ class _NewNotePageState extends State<NewNotePage> with SingleTickerProviderStat
     return _frontController.text.isEmpty && _backController.text.isEmpty;
   }
 
-  void _checkNoteSaved(BuildContext context) {
+  void _checkNoteSaved(BuildContext screenContext) {
     if (_isNoteSaved || _isNoteEmpty()) {
-      Navigator.pop(context);
+      closeOrGoHome(screenContext);
     } else {
       showDialog(
-        context: context,
-        builder: (BuildContext context) {
+        context: screenContext,
+        builder: (BuildContext dialogContext) {
           return AlertDialog(
             title: Text("Emin misiniz?"),
             content: Text("Son yazdığınız not kaydedilmedi. Geri gitmek istediğinize emin misiniz?"),
@@ -249,14 +250,14 @@ class _NewNotePageState extends State<NewNotePage> with SingleTickerProviderStat
               TextButton(
                 child: Text("Hayır"),
                 onPressed: () {
-                  Navigator.of(context).pop();
+                  Navigator.of(dialogContext).pop();
                 },
               ),
               TextButton(
                 child: Text("Evet"),
                 onPressed: () {
-                  Navigator.of(context).pop();
-                  Navigator.pop(context);
+                  Navigator.of(dialogContext).pop();
+                  closeOrGoHome(screenContext);
                 },
               ),
             ],
@@ -272,8 +273,8 @@ class _NewNotePageState extends State<NewNotePage> with SingleTickerProviderStat
     final screenHeight = widget.screenHeight;
 
     return Scaffold(
-      backgroundColor: Color(0xFFF5F0EB),
-      body: Center(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      body: SingleChildScrollView(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.start,
           children: [
@@ -288,7 +289,7 @@ class _NewNotePageState extends State<NewNotePage> with SingleTickerProviderStat
                     style: TextStyle(
                         fontSize: screenWidth * 0.1125, // Increased font size
                         fontWeight: FontWeight.w800,
-                        fontFamily: "Cursive"),
+                        fontFamily: AppFontSettings.labelFontFamily),
                   ),
                   GestureDetector(
                     onTap: () {
@@ -339,7 +340,7 @@ class _NewNotePageState extends State<NewNotePage> with SingleTickerProviderStat
               child: Container(
                 padding: EdgeInsets.symmetric(horizontal: widget.screenWidth * 0.05),
                 decoration: BoxDecoration(
-                  color: Color(0xFFF5F0EB), // Arka fonla aynı renk
+                  color: Theme.of(context).scaffoldBackgroundColor,
                   borderRadius: BorderRadius.circular(5),
                 ),
                 child: Row(
@@ -355,9 +356,9 @@ class _NewNotePageState extends State<NewNotePage> with SingleTickerProviderStat
                             "Sayfayı Çevir",
                             style: TextStyle(
                               fontSize: widget.screenWidth * 0.09375,
-                              color: Colors.black,
+                              color: Theme.of(context).colorScheme.onSurface,
                               fontWeight: FontWeight.w800,
-                              fontFamily: "Cursive",
+                              fontFamily: AppFontSettings.labelFontFamily,
                             ),
                           ),
                         ],
@@ -367,58 +368,7 @@ class _NewNotePageState extends State<NewNotePage> with SingleTickerProviderStat
                 ),
               ),
             ),
-            SizedBox(height: screenHeight * 0.01),
-            // Color picker
-            Container(
-              padding: EdgeInsets.symmetric(horizontal: widget.screenWidth * 0.05),
-              child: Column(
-                children: [
-                  Text(
-                    "Kart Rengi",
-                    style: TextStyle(
-                      fontSize: widget.screenWidth * 0.05,
-                      fontWeight: FontWeight.w700,
-                      fontFamily: "Cursive",
-                    ),
-                  ),
-                  SizedBox(height: 10),
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: NoteColor.colorNames.map((colorName) {
-                        return GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              _selectedColor = colorName;
-                            });
-                          },
-                          child: Container(
-                            margin: EdgeInsets.symmetric(horizontal: 5),
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              color: NoteColor.getColor(colorName),
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: _selectedColor == colorName
-                                    ? Colors.brown
-                                    : Colors.grey,
-                                width: _selectedColor == colorName ? 3 : 1,
-                              ),
-                            ),
-                            child: _selectedColor == colorName
-                                ? Icon(Icons.check, color: Colors.brown)
-                                : null,
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            SizedBox(height: screenHeight * 0.01),
+            SizedBox(height: screenHeight * 0.02),
             GestureDetector(
               onTap: () {
                 if (_folders.isEmpty) {
@@ -433,7 +383,7 @@ class _NewNotePageState extends State<NewNotePage> with SingleTickerProviderStat
               child: Container(
                 padding: EdgeInsets.symmetric(horizontal: widget.screenWidth * 0.05),
                 decoration: BoxDecoration(
-                  color: Color(0xFFF5F0EB), // Arka fonla aynı renk
+                  color: Theme.of(context).scaffoldBackgroundColor,
                   borderRadius: BorderRadius.circular(5),
                 ),
                 child: Row(
@@ -449,9 +399,9 @@ class _NewNotePageState extends State<NewNotePage> with SingleTickerProviderStat
                             "Notu Kaydet",
                             style: TextStyle(
                               fontSize: widget.screenWidth * 0.09375,
-                              color: Colors.black,
+                              color: Theme.of(context).colorScheme.onSurface,
                               fontWeight: FontWeight.w800,
-                              fontFamily: "Cursive",
+                              fontFamily: AppFontSettings.labelFontFamily,
                             ),
                           ),
                         ],
@@ -460,7 +410,8 @@ class _NewNotePageState extends State<NewNotePage> with SingleTickerProviderStat
                   ],
                 ),
               ),
-            )
+            ),
+            SizedBox(height: screenHeight * 0.02),
           ],
         ),
       ),
@@ -477,7 +428,7 @@ class _NewNotePageState extends State<NewNotePage> with SingleTickerProviderStat
           image: AssetImage("assets/card_template.png"),
           fit: BoxFit.cover,
           colorFilter: ColorFilter.mode(
-            NoteColor.getColor(_selectedColor).withOpacity(0.3),
+            NoteColor.getColor(_selectedColor).withValues(alpha: 0.3),
             BlendMode.softLight,
           ),
         ),
@@ -491,6 +442,11 @@ class _NewNotePageState extends State<NewNotePage> with SingleTickerProviderStat
                   controller: _frontController,
                   maxLines: null,
                   textAlign: TextAlign.center,
+                  keyboardType: TextInputType.multiline,
+                  textInputAction: TextInputAction.done,
+                  onSubmitted: (_) {
+                    FocusScope.of(context).unfocus();
+                  },
                   decoration: InputDecoration(
                     hintText: "Ön yüz yazısını buraya yazın...",
                     border: InputBorder.none,
@@ -513,7 +469,7 @@ class _NewNotePageState extends State<NewNotePage> with SingleTickerProviderStat
           image: AssetImage("assets/card_template.png"),
           fit: BoxFit.cover,
           colorFilter: ColorFilter.mode(
-            NoteColor.getColor(_selectedColor).withOpacity(0.3),
+            NoteColor.getColor(_selectedColor).withValues(alpha: 0.3),
             BlendMode.softLight,
           ),
         ),
@@ -527,6 +483,11 @@ class _NewNotePageState extends State<NewNotePage> with SingleTickerProviderStat
                   controller: _backController,
                   maxLines: null,
                   textAlign: TextAlign.center,
+                  keyboardType: TextInputType.multiline,
+                  textInputAction: TextInputAction.done,
+                  onSubmitted: (_) {
+                    FocusScope.of(context).unfocus();
+                  },
                   decoration: InputDecoration(
                     hintText: "Arka yüz yazısını buraya yazın...",
                     border: InputBorder.none,
@@ -539,3 +500,4 @@ class _NewNotePageState extends State<NewNotePage> with SingleTickerProviderStat
     );
   }
 }
+
