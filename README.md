@@ -2,6 +2,16 @@
 
 FlipPage, flashcard tarzında not tutma ve çalışma uygulamasıdır. Flutter ile geliştirilmiştir.
 
+## Uygulama Bilgisi
+
+FlipPage; soru-cevap mantığıyla çalışan dijital kartlar (flashcard) üzerinden düzenli tekrar yapmanızı sağlayan bir not ve öğrenme uygulamasıdır. Hızlı not oluşturma, klasörleme, arama, çalışma modu ve yedekleme özellikleriyle bireysel öğrenme sürecini sade bir arayüzde toplar.
+
+Android uygulama mağazasından uygulamayı denemek için:
+
+[![Google Play'de Dene](https://img.shields.io/badge/Google%20Play-FlipPage-34A853?style=for-the-badge&logo=googleplay&logoColor=white)](https://play.google.com/store/apps/details?id=com.bg.flip_page)
+
+https://play.google.com/store/apps/details?id=com.bg.flip_page
+
 ## Özellikler
 
 ### 📝 Not Yönetimi
