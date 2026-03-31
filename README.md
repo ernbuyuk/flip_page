@@ -91,7 +91,9 @@ flutter run
 
 - Proje Android tarafinda `compileSdk = 36` ile derlenir.
 - Uygulama yalnızca dikey (`portrait`) kullanıma kilitlidir.
-- Android 15 icin edge-to-edge etkinlestirme `MainActivity` icinde `EdgeToEdge.enable(this)` ile yapilir.
+- Edge-to-edge gorunum Flutter tarafinda `SystemUiMode.edgeToEdge` ile etkinlestirilir.
+- AGP 8.5.1+ gereksinimi karsilanir (projede AGP 8.7.3 kullanilir).
+- JNI kutuphaneleri modern paketleme ile (`useLegacyPackaging = false`) uretilir.
 
 Release almadan once asagidaki kontrolleri calistirin:
 
@@ -100,6 +102,36 @@ flutter clean
 flutter pub get
 flutter build appbundle --release
 ```
+
+Uretilen paketin 16 KB hizalama kontrolleri icin:
+
+```bash
+bundletool dump config --bundle=build/app/outputs/bundle/release/app-release.aab | grep alignment
+zipalign -c -P 16 -v 4 build/app/outputs/flutter-apk/app-release.apk
+adb shell getconf PAGE_SIZE
+```
+
+Tek komutla kontrol icin:
+
+```bash
+bash scripts/verify_16kb.sh
+```
+
+Script `bundletool` / `zipalign` / `adb` bulamazsa Linux icin hizli kurulum:
+
+```bash
+export ANDROID_SDK_ROOT="$HOME/Android/Sdk"
+export PATH="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$PATH"
+sdkmanager "platform-tools" "build-tools;36.0.0"
+
+# bundletool icin:
+# 1) PATH'e bundletool binary ekleyin
+# veya
+# 2) bundletool.jar dosyasini tools/bundletool.jar olarak koyun
+```
+
+- `bundletool` cikisinda `PAGE_ALIGNMENT_16K` beklenir.
+- `adb shell getconf PAGE_SIZE` komutu 16 KB test ortami icin `16384` donmelidir.
 
 16 KB page-size uyumlulugu icin, final AAB dosyasini Android 15 (API 35+) cihaz/emulator uzerinde acilis ve temel akislarda test edin. Flutter/engine kaynakli native kutuphane uyumsuzlugu gorurseniz Flutter SDK'yi guncel stable surume yukselterek yeniden release alin.
 
