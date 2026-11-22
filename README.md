@@ -8,7 +8,7 @@ Kartın ön yüzüne soruyu, arka yüzüne cevabı yazarsınız; uygulama her ka
 
 https://play.google.com/store/apps/details?id=com.bg.flip_page
 
-**Güncel sürüm:** 1.4.0 (6) · **Hedef API:** 36 (Android 16) · **Minimum:** Android 7.0 (API 24)
+**Güncel sürüm:** 1.4.0 (7) · **Hedef API:** 36 (Android 16) · **Minimum:** Android 7.0 (API 24)
 
 ## Özellikler
 

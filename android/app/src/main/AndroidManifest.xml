@@ -1,4 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Dikey kilit (screenOrientation="portrait") bu özelliği otomatik olarak zorunlu
+         yapar ve Play'de bazı cihazlarda (tablet, Chromebook, XR) kurulumu engeller.
+         İsteğe bağlı yapınca uygulama her cihaza kurulabilir; dikey kilit yine çalışır. -->
+    <uses-feature android:name="android.hardware.screen.portrait" android:required="false" />
+
     <application
         android:label="Flip Page"
         android:name="${applicationName}"
