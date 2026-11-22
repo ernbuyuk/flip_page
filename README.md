@@ -8,7 +8,7 @@ Kartın ön yüzüne soruyu, arka yüzüne cevabı yazarsınız; uygulama her ka
 
 https://play.google.com/store/apps/details?id=com.bg.flip_page
 
-**Güncel sürüm:** 1.3.0 (5) · **Hedef API:** 36 (Android 16) · **Minimum:** Android 7.0 (API 24)
+**Güncel sürüm:** 1.4.0 (6) · **Hedef API:** 36 (Android 16) · **Minimum:** Android 7.0 (API 24)
 
 ## Özellikler
 
@@ -195,30 +195,41 @@ Beklenen sonuçlar: `PAGE_ALIGNMENT_16K` ve `Verification successful`.
 
 ## Sürüm Geçmişi
 
-### 1.3.0
-- **Aralıklı tekrar:** zamanı gelen kartlar, "Bugün N tekrar" rozeti, "Bugünlük bu kadar" ekranı, yeni istatistikler (bugünkü tekrar, öğrenilen).
-- **Sesli okuma:** hoparlör butonu, ön/arka yüz için ayrı dil, hız ve otomatik okuma.
-- **Renkli kart temaları:** renk kartın tamamını, çerçevesini ve simgesini değiştirir.
-- **Düzeltmeler:**
-  - Çalışma modunda "Bilmiyorum" denen kart sonsuz tekrar ediyor, oturum bitmiyordu.
-  - Sonuç ekranında dar telefonlarda taşma vardı.
+### 1.4.0
+Google Play'deki 1.1.1 sürümünden sonraki ilk güncelleme.
 
-### 1.2.0
-- **Android 16 (API 36)** hedefleniyor.
-- **Ekran uyumu:** Bazı telefonlarda butonların aşağıda kalıp kaydırma gerektirmesi düzeltildi.
-- **Veri hataları:**
-  - Karışık listede "Düzenle" yanlış notu değiştirebiliyordu.
-  - Klasör içinde silme diğer klasörlerin notlarını silebiliyordu.
-- **Karanlık mod:** beyaz zemin üstüne beyaz yazı sorunları giderildi.
-- **Yenilikler:**
-  - Not rengi ve klasör seçimi
+**Yeni özellikler**
+- **Aralıklı tekrar:**
+  - Çalışma modu sadece tekrar zamanı gelen kartları getirir.
+  - Ana sayfada "Bugün N tekrar" rozeti var.
+  - Bugünkü kartlar bitince "Bugünlük bu kadar" ekranı açılır.
+- **Sesli okuma:** hoparlör butonu, ön ve arka yüz için ayrı dil, okuma hızı ve otomatik okuma.
+- **Renkli kart temaları:** 7 tema; renk kartın tamamını, çerçevesini ve simgesini değiştirir.
+- **Çalışma modu:**
+  - "Önce zor kartlar" ve "cevaptan başla" seçenekleri
+  - Kart bazında doğru/yanlış takibi
+  - Tekrar turu
+  - Sonuç ekranında tekrarda öğrenilen kartlar
+- **İstatistikler:** başarı oranı, çalışılan kartlar, bugünkü tekrarlar, öğrenilen kartlar, en çok zorlanılan kartlar.
+- **Not ve klasörler:**
+  - Not yazarken renk ve klasör seçimi
   - Silme onayı
   - Klasör yeniden adlandırma ve not sayıları
-  - Klasör silerken notları taşıma
-  - Çalışma modunda "önce zor kartlar" ve "cevaptan başla"
-  - Kart bazında doğru/yanlış takibi
-  - İçe aktarmada yinelenen notların atlanması
-  - Geri tuşunda kaydedilmemiş not uyarısı
+  - Klasör silerken notları taşıma seçeneği
+- **Yedekleme:** içe aktarmada aynı notlar tekrar eklenmez.
+
+**Android 16 ve ekran uyumu**
+- Android 16 (API 36) hedefleniyor (Google Play hedef API şartı).
+- Bazı telefonlarda butonların aşağıda kalıp kaydırma gerektirmesi düzeltildi. Çentik, 3 tuşlu gezinme, büyük yazı boyutu ve açık klavyede de butonlar görünür.
+- Android 16 geri hareketi desteklenir. Kaydedilmemiş not varken geri tuşunda uyarı verilir.
+
+**Hata düzeltmeleri**
+- Karışık listede "Düzenle" yanlış notu değiştirebiliyordu.
+- Klasör içinde not silmek diğer klasörlerdeki notları silebiliyordu.
+- Not düzenlenince klasör bilgisi kayboluyordu.
+- Çalışma modunda "Bilmiyorum" denen kart sonsuz tekrar ediyor, oturum bitmiyordu.
+- Karanlık modda beyaz zemin üstüne beyaz yazı sorunları vardı.
+- Klasör silinince içindeki notlar hiçbir klasörde görünmüyordu.
 
 ## Lisans
 

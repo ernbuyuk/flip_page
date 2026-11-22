@@ -444,7 +444,7 @@ class _SettingsPageState extends State<SettingsPage> {
                         ),
                         SizedBox(height: 10),
                         Text(
-                          "FlipPage v1.3.0",
+                          "FlipPage v1.4.0",
                           style: TextStyle(
                             fontSize: widget.screenWidth * 0.04,
                             fontWeight: FontWeight.w600,
