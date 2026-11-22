@@ -1,171 +1,212 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert';
-import 'dart:math'; // Import dart:math for shuffling
 import 'package:share_plus/share_plus.dart';
 import 'new_note_page.dart';
 import 'study_mode_page.dart';
 import 'navigation_helper.dart';
+import 'note_storage.dart';
 import 'theme_provider.dart';
+import 'note_card.dart';
+import 'speech_service.dart';
 
 class MyNotesPage extends StatefulWidget {
   final bool isEditMode;
   final String? folderName;
 
-  MyNotesPage({this.isEditMode = false, this.folderName});
+  const MyNotesPage({super.key, this.isEditMode = false, this.folderName});
 
   @override
-  _MyNotesPageState createState() => _MyNotesPageState();
+  State<MyNotesPage> createState() => _MyNotesPageState();
 }
 
 class _MyNotesPageState extends State<MyNotesPage> with SingleTickerProviderStateMixin {
+  static const String _mixedFolderName = 'Karışık';
+
   List<Map<String, dynamic>> _notes = [];
+  bool _loading = true;
   int currentIndex = 0;
-  Offset _offset = Offset.zero;
+  double _dragDx = 0;
   late AnimationController _animationController;
   bool _isFront = true;
-  bool _isFlipping = false;
   bool _isTextVisible = true;
+
+  bool get _filtersByFolder => widget.folderName != null && widget.folderName != _mixedFolderName;
 
   @override
   void initState() {
     super.initState();
     _animationController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 500),
-    )..addStatusListener((status) {
+      duration: const Duration(milliseconds: 400),
+    )
+      ..addStatusListener((status) {
         if (status == AnimationStatus.completed) {
           setState(() {
             _isFront = !_isFront;
             _animationController.reset();
-            _isFlipping = false;
             _isTextVisible = true;
           });
         }
       })
       ..addListener(() {
-        if (_animationController.value > 0.50) {
-          setState(() {
-            _isTextVisible = false;
-          });
-        } else {
-          setState(() {
-            _isTextVisible = true;
-          });
+        final visible = _animationController.value <= 0.5;
+        if (visible != _isTextVisible) {
+          setState(() => _isTextVisible = visible);
         }
       });
 
     _loadNotes();
   }
 
-  Future<void> _loadNotes() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    List<String>? notesJson = prefs.getStringList("notes") ?? [];
-    setState(() {
-      _notes = notesJson.map((note) => jsonDecode(note) as Map<String, dynamic>).toList();
-      if (widget.folderName != null && widget.folderName != "Karışık") {
-        _notes = _notes.where((note) => note['folder'] == widget.folderName).toList();
+  /// Notları yükler. [keepId] verilirse o not tekrar öne getirilir
+  /// (düzenleme sonrası kullanıcının yeri kaybolmasın diye).
+  Future<void> _loadNotes({String? keepId}) async {
+    final all = await NoteStorage.loadNotes();
+    var notes = _filtersByFolder ? all.where((n) => n['folder'] == widget.folderName).toList() : all;
+
+    if (keepId != null && _notes.isNotEmpty) {
+      // Mevcut sırayı koru, sadece içerikleri güncelle.
+      final byId = {for (final n in notes) n['id']: n};
+      final ordered = <Map<String, dynamic>>[];
+      for (final old in _notes) {
+        final updated = byId.remove(old['id']);
+        if (updated != null) ordered.add(updated);
       }
-      _notes.shuffle(Random()); // Shuffle the notes
+      ordered.addAll(byId.values);
+      notes = ordered;
+    } else {
+      notes.shuffle(Random());
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _notes = notes;
+      _loading = false;
+      if (keepId != null) {
+        final i = _notes.indexWhere((n) => n['id'] == keepId);
+        currentIndex = i >= 0 ? i : 0;
+      }
+      if (currentIndex >= _notes.length) currentIndex = 0;
+    });
+  }
+
+  void _goTo(int delta) {
+    if (_notes.isEmpty) return;
+    setState(() {
+      currentIndex = (currentIndex + delta + _notes.length) % _notes.length;
+      _isFront = true;
+      _animationController.reset();
+      _isTextVisible = true;
     });
   }
 
   void _onDragUpdate(DragUpdateDetails details) {
-    setState(() {
-      _offset = Offset(details.localPosition.dx - MediaQuery.of(context).size.width / 2, 0);
-    });
+    setState(() => _dragDx += details.delta.dx);
   }
 
   void _onDragEnd(DragEndDetails details) {
-    if (_offset.dx.abs() > 100) {
-      bool isNext = _offset.dx < 0;
-      setState(() {
-        currentIndex = isNext
-            ? (currentIndex + 1) % _notes.length
-            : (currentIndex - 1 + _notes.length) % _notes.length;
-      });
+    final velocity = details.primaryVelocity ?? 0;
+    if (_dragDx.abs() > 80 || velocity.abs() > 600) {
+      final isNext = (_dragDx != 0 ? _dragDx : velocity) < 0;
+      _goTo(isNext ? 1 : -1);
     }
-    setState(() {
-      _offset = Offset.zero;
-    });
+    setState(() => _dragDx = 0);
   }
 
   void _flipCard() {
-    if (!_isFlipping) {
-      setState(() {
-        _isFlipping = true;
-        _animationController.forward();
-      });
+    if (!_animationController.isAnimating) {
+      _animationController.forward();
     }
   }
 
   void _resetFlip() {
-    if (!_isFront) {
-      setState(() {
-        _animationController.forward();
-      });
+    if (!_isFront && !_animationController.isAnimating) {
+      _animationController.forward();
     }
   }
 
-  void _deleteNote() {
+  Future<void> _deleteNote() async {
+    if (_notes.isEmpty) return;
+    final note = _notes[currentIndex];
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text("Notu Sil"),
+        content: Text(
+          "\"${_preview(note['frontText'])}\" notu silinsin mi? Bu işlem geri alınamaz.",
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text("İptal")),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text("Sil"),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+
+    // Önceden sadece ekrandaki (filtrelenmiş) liste kaydediliyordu ve bu,
+    // diğer klasörlerdeki notların silinmesine yol açabiliyordu.
+    await NoteStorage.deleteNote(note['id'] as String);
+    if (!mounted) return;
     setState(() {
-      if (_notes.isNotEmpty) {
-        _notes.removeAt(currentIndex);
-        if (_notes.isEmpty) {
-          currentIndex = 0;
-        } else {
-          currentIndex = currentIndex % _notes.length;
-        }
+      _notes.removeAt(currentIndex);
+      if (_notes.isEmpty) {
+        currentIndex = 0;
+      } else {
+        currentIndex = currentIndex % _notes.length;
       }
+      _isFront = true;
     });
-    _saveNotes();
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(const SnackBar(content: Text("Not silindi.")));
   }
 
-  void _editNote() {
-    Navigator.push(
+  String _preview(dynamic text) {
+    final s = (text ?? '').toString().replaceAll('\n', ' ').trim();
+    if (s.isEmpty) return '(boş)';
+    return s.length > 40 ? '${s.substring(0, 40)}…' : s;
+  }
+
+  Future<void> _editNote() async {
+    if (_notes.isEmpty) return;
+    final note = _notes[currentIndex];
+    final changed = await Navigator.push<bool>(
       context,
       MaterialPageRoute(
         builder: (context) => NewNotePage(
           screenWidth: MediaQuery.of(context).size.width,
           screenHeight: MediaQuery.of(context).size.height,
-          frontText: _notes[currentIndex]['frontText'],
-          backText: _notes[currentIndex]['backText'],
+          frontText: note['frontText'],
+          backText: note['backText'],
           isEditMode: true,
-          noteIndex: currentIndex,
-          folderName: widget.folderName,
-          color: _notes[currentIndex]['color'],
+          noteId: note['id'] as String,
+          folderName: note['folder'] as String? ?? '',
+          color: note['color'],
         ),
       ),
-    ).then((updatedNotes) {
-      if (updatedNotes != null) {
-        setState(() {
-          _notes = (updatedNotes as List<String>).map<Map<String, dynamic>>((note) => jsonDecode(note)).toList();
-          if (widget.folderName != null && widget.folderName != "Karışık") {
-            _notes = _notes.where((note) => note['folder'] == widget.folderName).toList();
-          }
-        });
-      }
-    });
-  }
-
-  Future<void> _saveNotes() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    List<String> notesJson = _notes.map((note) => jsonEncode(note)).toList();
-    prefs.setStringList("notes", notesJson);
+    );
+    if (changed == true) {
+      await _loadNotes(keepId: note['id'] as String);
+    }
   }
 
   void _shareNote() {
     if (_notes.isNotEmpty) {
       Map<String, dynamic> note = _notes[currentIndex];
+      final folder = (note['folder'] ?? '').toString();
       String shareText = '''
 FlipPage Notu
 
 Ön Yüz: ${note['frontText'] ?? ''}
 
 Arka Yüz: ${note['backText'] ?? ''}
-${note['folder'] != null && note['folder'].isNotEmpty ? '\nKlasör: ${note['folder']}' : ''}
-      ''';
-      Share.share(shareText, subject: 'FlipPage Notu');
+${folder.isNotEmpty ? '\nKlasör: $folder' : ''}''';
+      Share.share(shareText.trim(), subject: 'FlipPage Notu');
     }
   }
 
@@ -176,183 +217,124 @@ ${note['folder'] != null && note['folder'].isNotEmpty ? '\nKlasör: ${note['fold
         builder: (context) => StudyModePage(
           screenWidth: MediaQuery.of(context).size.width,
           screenHeight: MediaQuery.of(context).size.height,
-          folderName: widget.folderName ?? "Karışık",
+          folderName: widget.folderName ?? _mixedFolderName,
         ),
       ),
-    );
+    ).then((_) => _loadNotes(keepId: _notes.isEmpty ? null : _notes[currentIndex]['id'] as String));
   }
 
   @override
   void dispose() {
+    SpeechService.stop();
     _animationController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    double screenHeight = MediaQuery.of(context).size.height;
-    double screenWidth = MediaQuery.of(context).size.width;
+    final screenWidth = MediaQuery.of(context).size.width;
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.start,
-          children: [
-            Padding(
-              padding: EdgeInsets.only(top: screenHeight * 0.04, left: screenWidth * 0.05, right: screenWidth * 0.05),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.pop(context);
-                    },
-                    child: Image.asset(
-                      'assets/backpage.png',
-                      width: screenWidth * 0.11,
+      body: Column(
+        children: [
+          Padding(
+            padding: EdgeInsets.only(top: 12, left: screenWidth * 0.05, right: screenWidth * 0.05),
+            child: Row(
+              children: [
+                Semantics(
+                  button: true,
+                  label: 'Geri',
+                  child: GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: Image.asset('assets/backpage.png', width: screenWidth * 0.11),
+                  ),
+                ),
+                Expanded(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: Text(
+                        widget.isEditMode ? "Düzenle" : (widget.folderName ?? "Notlarım"),
+                        style: TextStyle(
+                          fontSize: screenWidth * 0.1,
+                          fontWeight: FontWeight.w800,
+                          fontFamily: AppFontSettings.labelFontFamily,
+                        ),
+                      ),
                     ),
                   ),
-                  Text(
-                    widget.folderName ?? "Notlarım",
-                    style: TextStyle(
-                        fontSize: screenWidth * 0.1125, // Increased font size
-                        fontWeight: FontWeight.w800,
-                        fontFamily: "Cursive"),
-                  ),
-                  GestureDetector(
-                    onTap: () {
-                      closeOrGoHome(context);
-                    },
+                ),
+                Semantics(
+                  button: true,
+                  label: 'Ana sayfa',
+                  child: GestureDetector(
+                    onTap: () => closeOrGoHome(context),
                     child: Image.asset(
                       'assets/exit.png',
                       width: screenWidth * 0.09375,
-                      height: screenHeight * 0.06,
+                      height: screenWidth * 0.09375,
                     ),
                   ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: Center(
-                child: _notes.isEmpty
-                    ? const Text(
-                        "Kayıtlı not bulunamadı.",
-                        style: TextStyle(fontSize: 18, fontStyle: FontStyle.italic),
-                      )
-                    : GestureDetector(
-                        onHorizontalDragUpdate: _onDragUpdate,
-                        onHorizontalDragEnd: _onDragEnd,
-                        onLongPress: _flipCard,
-                        onLongPressEnd: (details) => _resetFlip(),
-                        child: Stack(
-                          alignment: Alignment.center,
-                          children: _buildCardStack(),
-                        ),
-                      ),
-              ),
-            ),
-            if (widget.isEditMode)
-              Padding(
-                padding: EdgeInsets.only(bottom: screenHeight * 0.02),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    GestureDetector(
-                      onTap: _deleteNote,
-                      child: Container(
-                        padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.04, vertical: screenHeight * 0.01),
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).scaffoldBackgroundColor,
-                          borderRadius: BorderRadius.circular(5),
-                        ),
-                        child: Row(
-                          children: [
-                            Image.asset('assets/delete.png', width: screenWidth * 0.12, height: screenHeight * 0.06),
-                            SizedBox(width: screenWidth * 0.015),
-                            Text(
-                              "Sil",
-                              style: TextStyle(
-                                fontSize: screenWidth * 0.07,
-                                color: Theme.of(context).colorScheme.onSurface,
-                                fontWeight: FontWeight.w800,
-                                fontFamily: "Cursive",
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    SizedBox(width: screenWidth * 0.03),
-                    GestureDetector(
-                      onTap: _shareNote,
-                      child: Container(
-                        padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.04, vertical: screenHeight * 0.01),
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).scaffoldBackgroundColor,
-                          borderRadius: BorderRadius.circular(5),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.share, size: screenWidth * 0.12, color: Colors.brown),
-                            SizedBox(width: screenWidth * 0.015),
-                            Text(
-                              "Paylaş",
-                              style: TextStyle(
-                                fontSize: screenWidth * 0.07,
-                                color: Theme.of(context).colorScheme.onSurface,
-                                fontWeight: FontWeight.w800,
-                                fontFamily: "Cursive",
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    SizedBox(width: screenWidth * 0.03),
-                    GestureDetector(
-                      onTap: _editNote,
-                      child: Container(
-                        padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.04, vertical: screenHeight * 0.01),
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).scaffoldBackgroundColor,
-                          borderRadius: BorderRadius.circular(5),
-                        ),
-                        child: Row(
-                          children: [
-                            Image.asset('assets/edit.png', width: screenWidth * 0.12, height: screenHeight * 0.06),
-                            SizedBox(width: screenWidth * 0.015),
-                            Text(
-                              "Düzenle",
-                              style: TextStyle(
-                                fontSize: screenWidth * 0.07,
-                                color: Theme.of(context).colorScheme.onSurface,
-                                fontWeight: FontWeight.w800,
-                                fontFamily: "Cursive",
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
                 ),
-              )
-            else if (_notes.isNotEmpty)
-              Padding(
-                padding: EdgeInsets.only(bottom: screenHeight * 0.02),
-                child: GestureDetector(
-                  onTap: _openStudyMode,
-                  child: Container(
-                    padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.05, vertical: screenHeight * 0.01),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).scaffoldBackgroundColor,
-                      borderRadius: BorderRadius.circular(5),
-                    ),
+              ],
+            ),
+          ),
+          if (_notes.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                "${currentIndex + 1} / ${_notes.length}  •  Kaydır: sonraki  •  Dokun: çevir",
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ),
+          Expanded(
+            child: _loading
+                ? const Center(child: CircularProgressIndicator())
+                : _notes.isEmpty
+                    ? const Center(
+                        child: Text(
+                          "Kayıtlı not bulunamadı.",
+                          style: TextStyle(fontSize: 18, fontStyle: FontStyle.italic),
+                        ),
+                      )
+                    : LayoutBuilder(
+                        builder: (context, constraints) {
+                          return GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onHorizontalDragUpdate: _onDragUpdate,
+                            onHorizontalDragEnd: _onDragEnd,
+                            onTap: _flipCard,
+                            onLongPress: _flipCard,
+                            onLongPressEnd: (details) => _resetFlip(),
+                            child: Stack(
+                              alignment: Alignment.center,
+                              children: _buildCardStack(constraints),
+                            ),
+                          );
+                        },
+                      ),
+          ),
+          if (widget.isEditMode && _notes.isNotEmpty)
+            _buildEditButtons(screenWidth)
+          else if (_notes.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: InkWell(
+                onTap: _openStudyMode,
+                borderRadius: BorderRadius.circular(8),
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.05, vertical: 4),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Image.asset('assets/flip.png', width: screenWidth * 0.12, height: screenHeight * 0.06),
+                        Image.asset('assets/flip.png', width: screenWidth * 0.12, height: screenWidth * 0.12),
                         SizedBox(width: screenWidth * 0.02),
                         Text(
                           "Çalışma Modu",
@@ -363,50 +345,108 @@ ${note['folder'] != null && note['folder'].isNotEmpty ? '\nKlasör: ${note['fold
                             fontFamily: AppFontSettings.labelFontFamily,
                           ),
                         ),
+                        Builder(builder: (context) {
+                          final due = SpacedRepetition.dueCount(_notes);
+                          return Container(
+                            margin: EdgeInsets.only(left: screenWidth * 0.02),
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: due > 0 ? Colors.deepOrange : Colors.green,
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              due > 0 ? "$due tekrar" : "✓ tamam",
+                              style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                            ),
+                          );
+                        }),
                       ],
                     ),
                   ),
                 ),
               ),
-          ],
-        ),
+            ),
+        ],
       ),
     );
   }
 
-  List<Widget> _buildCardStack() {
-    List<Widget> stack = [];
-    int displayCount = _notes.length < 8 ? _notes.length : 8;
-
-    for (int i = 0; i < displayCount; i++) {
-      int noteIndex = (currentIndex + i) % _notes.length;
-      double scale = i == 0 ? 1.0 : 0.95;
-      double opacity = i < 0 ? 0.0 : 1.0;
-      double positionOffset = i * 20.0 + 50;
-
-      stack.add(Positioned(
-        bottom: positionOffset,
-        child: AnimatedOpacity(
-          duration: const Duration(milliseconds: 300),
-          opacity: opacity,
-          child: Transform.scale(
-            scale: scale,
-            child: Transform.translate(
-              offset: i == 0 ? _offset : Offset.zero,
-              child: _buildNoteCard(_notes[noteIndex], i == 0),
+  Widget _buildEditButtons(double screenWidth) {
+    Widget button(String label, Widget icon, VoidCallback onTap) {
+      return Expanded(
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(8),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  icon,
+                  const SizedBox(width: 6),
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: screenWidth * 0.065,
+                      color: Theme.of(context).colorScheme.onSurface,
+                      fontWeight: FontWeight.w800,
+                      fontFamily: AppFontSettings.labelFontFamily,
+                    ),
+                  ),
+                ],
+              ),
             ),
+          ),
+        ),
+      );
+    }
+
+    final iconSize = screenWidth * 0.1;
+    return Padding(
+      padding: EdgeInsets.fromLTRB(screenWidth * 0.02, 0, screenWidth * 0.02, 10),
+      child: Row(
+        children: [
+          button("Sil", Image.asset('assets/delete.png', width: iconSize, height: iconSize), _deleteNote),
+          button("Paylaş", Icon(Icons.share, size: iconSize, color: Colors.brown), _shareNote),
+          button("Düzenle", Image.asset('assets/edit.png', width: iconSize, height: iconSize), _editNote),
+        ],
+      ),
+    );
+  }
+
+  List<Widget> _buildCardStack(BoxConstraints constraints) {
+    final displayCount = min(_notes.length, 5);
+    const stepOffset = 12.0;
+    final stackSpace = stepOffset * (displayCount - 1);
+    final cardWidth = constraints.maxWidth * 0.9;
+    // Kart, mevcut alana sığacak şekilde boyutlanır (eski hali ekran yüksekliğinin
+    // %60'ı + 190px ofset kullanıyordu ve kısa ekranlarda başlığın üstüne taşıyordu).
+    final cardHeight = max(120.0, min(constraints.maxHeight - stackSpace - 32, cardWidth * 1.45));
+
+    final stack = <Widget>[];
+    for (int i = 0; i < displayCount; i++) {
+      final noteIndex = (currentIndex + i) % _notes.length;
+      final isTop = i == 0;
+      stack.add(Transform.translate(
+        offset: Offset(isTop ? _dragDx : 0, -stepOffset * i + stackSpace / 2),
+        child: Transform.rotate(
+          angle: isTop ? _dragDx / 2000 : 0,
+          child: Transform.scale(
+            scale: isTop ? 1.0 : 1.0 - 0.03 * i,
+            child: _buildNoteCard(_notes[noteIndex], isTop, cardWidth, cardHeight),
           ),
         ),
       ));
     }
-
     return stack.reversed.toList();
   }
 
-  Widget _buildNoteCard(Map<String, dynamic> note, bool isTopCard) {
-    String folderName = note["folder"] ?? "(default)";
+  Widget _buildNoteCard(Map<String, dynamic> note, bool isTopCard, double width, double height) {
+    final folderName = (note["folder"] ?? "").toString();
     if (!isTopCard) {
-      return _buildCard(note["frontText"] ?? "Ön Yüz", false, folderName);
+      return _buildCard(note, "", false, folderName, width, height);
     }
 
     return AnimatedBuilder(
@@ -417,76 +457,84 @@ ${note['folder'] != null && note['folder'].isNotEmpty ? '\nKlasör: ${note['fold
             ..setEntry(3, 2, 0.001)
             ..rotateY(_animationController.value * 3.1416),
           alignment: Alignment.center,
-          child: _isFront ? _buildFront(note, folderName) : _buildBack(note, folderName),
+          child: _buildCard(
+            note,
+            _isFront ? (note["frontText"] ?? "") : (note["backText"] ?? ""),
+            true,
+            folderName,
+            width,
+            height,
+          ),
         );
       },
     );
   }
 
-  Widget _buildFront(Map<String, dynamic> note, String folderName) {
-    return _buildCard(note["frontText"] ?? "Ön Yüz", true, folderName);
-  }
+  Widget _buildCard(
+      Map<String, dynamic> note, String text, bool isTopCard, String folderName, double width, double height) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final colorName = (note['color'] ?? 'default').toString();
+    final style = NoteColor.style(colorName);
+    final showText = isTopCard && _isTextVisible;
 
-  Widget _buildBack(Map<String, dynamic> note, String folderName) {
-    return _buildCard(note["backText"] ?? "Arka Yüz", true, folderName);
-  }
-
-  
-  Widget _buildCard(String text, bool isTopCard, String folderName) {
-    double screenWidth = MediaQuery.of(context).size.width;
-    double screenHeight = MediaQuery.of(context).size.height;
-
-    return Container(
-      width: screenWidth * 0.90, // 250 / 400 = 0.625
-      height: screenHeight * 0.60, // 350 / 800 = 0.4375
-      decoration: BoxDecoration(
-        color: Colors.brown.shade100,
-        borderRadius: BorderRadius.circular(screenWidth * 0.0375), // 15 / 400 = 0.0375
-        border: Border.all(color: Colors.brown, width: screenWidth * 0.0075), // 3 / 400 = 0.0075
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black26,
-            blurRadius: screenWidth * 0.025, // 10 / 400 = 0.025
-            spreadRadius: screenWidth * 0.005, // 2 / 400 = 0.005
-            offset: Offset(screenWidth * 0.0075, screenHeight * 0.015), // (3 / 400, 6 / 800) = (0.0075, 0.015)
-          ),
-        ],
-        image: const DecorationImage(
-          image: AssetImage("assets/card_template.png"),
-          fit: BoxFit.cover,
-        ),
-      ),
-      child: Stack(
-        children: [
-          if (isTopCard && _isTextVisible)
-            Center(
-              child: Padding(
-                padding: EdgeInsets.all(screenWidth * 0.04), // 16 / 400 = 0.04
-                child: Text(
-                  text,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: screenWidth * 0.05, fontWeight: FontWeight.bold), // 20 / 400 = 0.05
+    return NoteCard(
+      colorName: colorName,
+      width: width,
+      height: height,
+      child: showText
+          ? Stack(
+              children: [
+                Positioned.fill(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(28, 60, 28, 32),
+                    child: Center(
+                      child: SingleChildScrollView(
+                        child: Text(
+                          text.isEmpty ? (_isFront ? "(Ön yüz boş)" : "(Arka yüz boş)") : text,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: screenWidth * 0.055,
+                            fontWeight: FontWeight.bold,
+                            color: style.text,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
-              ),
-            ),
-          Positioned(
-            top: screenHeight * 0.02, // 16 / 800 = 0.02
-            right: screenWidth * 0.15, // 16 / 400 = 0.02
-            child: Opacity(
-              opacity: 0.5, // Şeffaflık
-              child: Text(
-                folderName.isEmpty ? "(default)" :"($folderName)",
-                style: TextStyle(
-                  fontSize: screenWidth * 0.04, // 16 / 400 = 0.04
-                  fontStyle: FontStyle.italic,
-                  color: Theme.of(context).colorScheme.onSurface,
+                Positioned(
+                  top: 32,
+                  left: 30,
+                  right: 30,
+                  child: Row(
+                    children: [
+                      NoteCardLabel(colorName: colorName, text: _isFront ? "SORU" : "CEVAP", fontSize: 11),
+                      SpeakButton(
+                        text: text,
+                        front: _isFront,
+                        speakKey: 'list-${note['id']}-$_isFront',
+                        color: style.ink,
+                        size: 22,
+                      ),
+                      const Spacer(),
+                      Flexible(
+                        child: Text(
+                          folderName.isEmpty ? "(varsayılan)" : "($folderName)",
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontStyle: FontStyle.italic,
+                            color: style.ink.withValues(alpha: 0.75),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ),
-          ),
-        ],
-      ),
+              ],
+            )
+          : null,
     );
   }
-}
 
+}

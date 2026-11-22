@@ -1,14 +1,11 @@
 import 'package:flutter/material.dart';
 
+/// Çıkış (X) butonu: ana sayfaya döner.
+///
+/// Son route asla pop edilmez; aksi halde Android'de uygulama kapanır/küçülür.
 void closeOrGoHome(BuildContext context) {
   final navigator = Navigator.of(context);
-
-  // Avoid popping the last route, which can close/minimize the app on Android.
   if (navigator.canPop()) {
-    navigator.pop();
-    return;
+    navigator.popUntil((route) => route.isFirst);
   }
-
-  navigator.pushNamedAndRemoveUntil('/', (route) => false);
 }
-

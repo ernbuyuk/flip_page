@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert'; // JSON işlemleri için
 import 'theme_provider.dart';
+import 'note_card.dart';
 import 'navigation_helper.dart';
+import 'note_storage.dart';
 
 class NewNotePage extends StatefulWidget {
   final double screenWidth;
@@ -10,33 +10,42 @@ class NewNotePage extends StatefulWidget {
   final String? frontText;
   final String? backText;
   final bool isEditMode;
-  final int? noteIndex;
+
+  /// Düzenlenen notun id'si (düzenleme modunda zorunlu).
+  final String? noteId;
   final String? folderName;
   final String? color;
 
-  NewNotePage({
+  const NewNotePage({
+    super.key,
     required this.screenWidth,
     required this.screenHeight,
     this.frontText,
     this.backText,
     this.isEditMode = false,
-    this.noteIndex,
+    this.noteId,
     this.folderName,
     this.color,
   });
 
   @override
-  _NewNotePageState createState() => _NewNotePageState();
+  State<NewNotePage> createState() => _NewNotePageState();
 }
 
 class _NewNotePageState extends State<NewNotePage> with SingleTickerProviderStateMixin {
   bool _isFront = true;
   bool _isTextVisible = true;
+  bool _isSaving = false;
   final TextEditingController _frontController = TextEditingController();
   final TextEditingController _backController = TextEditingController();
   late AnimationController _animationController;
   List<String> _folders = [];
   String _selectedColor = 'default';
+  String _selectedFolder = '';
+  bool _folderChosen = false;
+
+  String _initialFront = '';
+  String _initialBack = '';
 
   @override
   void initState() {
@@ -44,7 +53,8 @@ class _NewNotePageState extends State<NewNotePage> with SingleTickerProviderStat
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 500),
-    )..addStatusListener((status) {
+    )
+      ..addStatusListener((status) {
         if (status == AnimationStatus.completed) {
           setState(() {
             _isFront = !_isFront;
@@ -54,30 +64,29 @@ class _NewNotePageState extends State<NewNotePage> with SingleTickerProviderStat
         }
       })
       ..addListener(() {
-        if (_animationController.value > 0.50) {
-          setState(() {
-            _isTextVisible = false;
-          });
-        } else {
-          setState(() {
-            _isTextVisible = true;
-          });
+        final visible = _animationController.value <= 0.5;
+        if (visible != _isTextVisible) {
+          setState(() => _isTextVisible = visible);
         }
       });
 
-    // Eğer düzenleme modundaysa, mevcut kart bilgilerini yükle
+    _selectedFolder = widget.folderName ?? '';
+    _folderChosen = widget.isEditMode || widget.folderName != null;
+
     if (widget.isEditMode) {
       _frontController.text = widget.frontText ?? '';
       _backController.text = widget.backText ?? '';
       _selectedColor = widget.color ?? 'default';
     }
+    _initialFront = _frontController.text;
+    _initialBack = _backController.text;
 
     _loadFolders();
   }
 
   Future<void> _loadFolders() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    List<String>? folders = prefs.getStringList("folders") ?? [];
+    final folders = await NoteStorage.loadFolders();
+    if (!mounted) return;
     setState(() {
       _folders = folders;
     });
@@ -91,138 +100,102 @@ class _NewNotePageState extends State<NewNotePage> with SingleTickerProviderStat
     super.dispose();
   }
 
-  Future<void> _saveNote() async {
-    if (_isNoteEmpty()) {
-      // Kullanıcıya geri bildirim ver
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Lütfen bir metin girin!")),
-      );
-      return; // Kaydetme işlemini durdur
-    }
-
-    // Kart bilgilerini JSON formatına dönüştür
-    Map<String, String> noteData = {
-      "frontText": _frontController.text,
-      "backText": _backController.text,
-      "folder": widget.folderName ?? "", // Kategori olarak klasör adı ekleniyor
-      "color": _selectedColor, // Renk seçimi ekleniyor
-    };
-    String noteJson = jsonEncode(noteData);
-
-    // SharedPreferences'e kaydet
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    List<String>? notes = prefs.getStringList("notes") ?? [];
-
-    if (widget.isEditMode && widget.noteIndex != null) {
-      // Mevcut notu güncelle
-      notes[widget.noteIndex!] = noteJson;
-    } else {
-      // Yeni notu ekle
-      notes.add(noteJson);
-    }
-
-    await prefs.setStringList("notes", notes); // Listeyi güncelle
-
-    // Kullanıcıya geri bildirim ver
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Not Kaydedildi!")),
-    );
-
-    // Input alanlarını temizle
-    _frontController.clear();
-    _backController.clear();
-
-    // Düzenleme modunda kaydedildikten sonra geri dön
-    if (widget.isEditMode) {
-      Navigator.pop(context, notes);
-    }
+  bool _isNoteEmpty() {
+    return _frontController.text.trim().isEmpty && _backController.text.trim().isEmpty;
   }
 
-  Future<void> _saveNoteToFolder(String folderName) async {
-    if (_isNoteEmpty()) {
-      // Kullanıcıya geri bildirim ver
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Lütfen bir metin girin!")),
-      );
-      return; // Kaydetme işlemini durdur
-    }
-
-    // Kart bilgilerini JSON formatına dönüştür
-    Map<String, String> noteData = {
-      "frontText": _frontController.text,
-      "backText": _backController.text,
-      "folder": folderName, // Kategori olarak klasör adı ekleniyor
-      "color": _selectedColor, // Renk seçimi ekleniyor
-    };
-    String noteJson = jsonEncode(noteData);
-
-    // SharedPreferences'e kaydet
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    List<String>? notes = prefs.getStringList("notes") ?? [];
-
-    if (widget.isEditMode && widget.noteIndex != null) {
-      // Mevcut notu güncelle
-      notes[widget.noteIndex!] = noteJson;
-    } else {
-      // Yeni notu ekle
-      notes.add(noteJson);
-    }
-
-    await prefs.setStringList("notes", notes); // Listeyi güncelle
-
-    // Kullanıcıya geri bildirim ver
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Not Kaydedildi!")),
-    );
-
-    // Input alanlarını temizle
-    _frontController.clear();
-    _backController.clear();
-
-    // Düzenleme modunda kaydedildikten sonra geri dön
+  bool get _hasUnsavedChanges {
     if (widget.isEditMode) {
-      Navigator.pop(context, notes);
+      return _frontController.text != _initialFront || _backController.text != _initialBack;
     }
+    return !_isNoteEmpty();
   }
 
-  void _showFolderSelectionDialog() {
-    showDialog(
+  void _flip() {
+    if (_animationController.isAnimating) return;
+    FocusScope.of(context).unfocus();
+    _animationController.forward();
+  }
+
+  Future<void> _onSavePressed() async {
+    if (_isSaving) return;
+    if (_isNoteEmpty()) {
+      _showSnack("Lütfen bir metin girin!");
+      return;
+    }
+    if (!_folderChosen && _folders.isNotEmpty) {
+      final folder = await _pickFolder();
+      if (folder == null) return; // iptal
+      _selectedFolder = folder;
+      _folderChosen = true;
+    }
+    await _save();
+  }
+
+  Future<void> _save() async {
+    setState(() => _isSaving = true);
+    await NoteStorage.upsertNote(
+      id: widget.isEditMode ? widget.noteId : null,
+      frontText: _frontController.text,
+      backText: _backController.text,
+      folder: _selectedFolder,
+      color: _selectedColor,
+    );
+    if (!mounted) return;
+    setState(() => _isSaving = false);
+
+    _showSnack("Not Kaydedildi!");
+
+    if (widget.isEditMode) {
+      Navigator.pop(context, true);
+      return;
+    }
+
+    // Yeni not: alanları temizle, ön yüze dön. Renk ve klasör seri giriş için korunur.
+    _frontController.clear();
+    _backController.clear();
+    _initialFront = '';
+    _initialBack = '';
+    setState(() {
+      _isFront = true;
+      // Kullanıcı klasörü dialogdan seçtiyse bir sonraki notta tekrar sorulsun.
+      _folderChosen = widget.folderName != null;
+    });
+  }
+
+  void _showSnack(String text) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(text), duration: const Duration(seconds: 2)));
+  }
+
+  Future<String?> _pickFolder() {
+    return showDialog<String>(
       context: context,
-      builder: (BuildContext context) {
+      builder: (BuildContext dialogContext) {
+        final options = ['', ..._folders];
         return AlertDialog(
-          title: Text("Klasör Seç"),
-          content: Container(
+          title: const Text("Klasör Seç"),
+          content: SizedBox(
             width: double.maxFinite,
             child: ListView.builder(
               shrinkWrap: true,
-              itemCount: _folders.length + 1, // Add 1 for the "Default" option
+              itemCount: options.length,
               itemBuilder: (context, index) {
-                if (index == 0) {
-                  return ListTile(
-                    title: Text("Default"),
-                    onTap: () {
-                      _saveNoteToFolder("");
-                      Navigator.of(context).pop();
-                    },
-                  );
-                } else {
-                  return ListTile(
-                    title: Text(_folders[index - 1]),
-                    onTap: () {
-                      _saveNoteToFolder(_folders[index - 1]);
-                      Navigator.of(context).pop();
-                    },
-                  );
-                }
+                final name = options[index];
+                return ListTile(
+                  leading: Icon(name.isEmpty ? Icons.inbox_outlined : Icons.folder_outlined),
+                  title: Text(name.isEmpty ? "Varsayılan" : name),
+                  trailing: name == _selectedFolder ? const Icon(Icons.check) : null,
+                  onTap: () => Navigator.of(dialogContext).pop(name),
+                );
               },
             ),
           ),
           actions: [
             TextButton(
-              child: Text("İptal"),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
+              child: const Text("İptal"),
+              onPressed: () => Navigator.of(dialogContext).pop(),
             ),
           ],
         );
@@ -230,274 +203,295 @@ class _NewNotePageState extends State<NewNotePage> with SingleTickerProviderStat
     );
   }
 
-  bool _isNoteSaved = false; // Add a variable to track if the note is saved
-
-  bool _isNoteEmpty() {
-    return _frontController.text.isEmpty && _backController.text.isEmpty;
+  Future<bool> _confirmDiscard() async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: const Text("Emin misiniz?"),
+          content: const Text("Son yazdığınız not kaydedilmedi. Geri gitmek istediğinize emin misiniz?"),
+          actions: [
+            TextButton(
+              child: const Text("Hayır"),
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+            ),
+            TextButton(
+              child: const Text("Evet"),
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+            ),
+          ],
+        );
+      },
+    );
+    return result ?? false;
   }
 
-  void _checkNoteSaved(BuildContext screenContext) {
-    if (_isNoteSaved || _isNoteEmpty()) {
-      closeOrGoHome(screenContext);
-    } else {
-      showDialog(
-        context: screenContext,
-        builder: (BuildContext dialogContext) {
-          return AlertDialog(
-            title: Text("Emin misiniz?"),
-            content: Text("Son yazdığınız not kaydedilmedi. Geri gitmek istediğinize emin misiniz?"),
-            actions: [
-              TextButton(
-                child: Text("Hayır"),
-                onPressed: () {
-                  Navigator.of(dialogContext).pop();
-                },
-              ),
-              TextButton(
-                child: Text("Evet"),
-                onPressed: () {
-                  Navigator.of(dialogContext).pop();
-                  closeOrGoHome(screenContext);
-                },
-              ),
-            ],
-          );
-        },
-      );
+  Future<void> _onExitPressed() async {
+    if (!_hasUnsavedChanges || await _confirmDiscard()) {
+      if (mounted) closeOrGoHome(context);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = widget.screenWidth;
-    final screenHeight = widget.screenHeight;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final keyboardOpen = MediaQuery.of(context).viewInsets.bottom > 0;
 
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: SingleChildScrollView(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.start,
-          children: [
-            Padding(
-              padding: EdgeInsets.only(top: screenHeight * 0.04, left: screenWidth * 0.05, right: screenWidth * 0.05),
+    return PopScope(
+      // Sistem geri tuşu / geri hareketi de kaydedilmemiş notu korur.
+      canPop: !_hasUnsavedChanges,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop) return;
+        if (await _confirmDiscard() && context.mounted) {
+          Navigator.of(context).pop();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        body: LayoutBuilder(
+          builder: (context, constraints) {
+            final h = constraints.maxHeight;
+            final compact = keyboardOpen || h < 520;
+            return Column(
+              children: [
+                _buildHeader(screenWidth, h),
+                if (!keyboardOpen) _buildOptionsRow(screenWidth),
+                Expanded(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: screenWidth * 0.025,
+                      vertical: 6,
+                    ),
+                    child: GestureDetector(
+                      onHorizontalDragEnd: (details) {
+                        if ((details.primaryVelocity ?? 0).abs() > 200) _flip();
+                      },
+                      child: AnimatedBuilder(
+                        animation: _animationController,
+                        builder: (context, child) {
+                          return Transform(
+                            transform: Matrix4.identity()
+                              ..setEntry(3, 2, 0.001)
+                              ..rotateY(_animationController.value * 3.1416),
+                            alignment: Alignment.center,
+                            child: _buildCard(screenWidth),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+                compact ? _buildCompactButtons(screenWidth) : _buildLargeButtons(screenWidth, h),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader(double screenWidth, double h) {
+    return Padding(
+      padding: EdgeInsets.only(top: h * 0.015, left: screenWidth * 0.05, right: screenWidth * 0.05),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          SizedBox(width: screenWidth * 0.09375),
+          Flexible(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                widget.isEditMode ? "Notu Düzenle" : "Yeni Not",
+                style: TextStyle(
+                  fontSize: screenWidth * 0.1,
+                  fontWeight: FontWeight.w800,
+                  fontFamily: AppFontSettings.labelFontFamily,
+                ),
+              ),
+            ),
+          ),
+          Semantics(
+            button: true,
+            label: 'Kapat',
+            child: GestureDetector(
+              onTap: _onExitPressed,
+              child: Image.asset(
+                'assets/exit.png',
+                width: screenWidth * 0.09375,
+                height: screenWidth * 0.09375,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Renk ve klasör seçimi.
+  Widget _buildOptionsRow(double screenWidth) {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(screenWidth * 0.04, 8, screenWidth * 0.04, 0),
+      child: Row(
+        children: [
+          Expanded(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  SizedBox(width: screenWidth * 0.075), // Placeholder for alignment
-                  Text(
-                    "Yeni Not",
-                    style: TextStyle(
-                        fontSize: screenWidth * 0.1125, // Increased font size
-                        fontWeight: FontWeight.w800,
-                        fontFamily: AppFontSettings.labelFontFamily),
-                  ),
-                  GestureDetector(
-                    onTap: () {
-                      _checkNoteSaved(context);
-                    },
-                    child: Image.asset(
-                      'assets/exit.png',
-                      width: screenWidth * 0.09375,
-                      height: screenHeight * 0.06,
+                children: NoteColor.colorNames.map((name) {
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 6),
+                    child: NoteColorSwatch(
+                      colorName: name,
+                      selected: name == _selectedColor,
+                      size: 34,
+                      onTap: () => setState(() => _selectedColor = name),
                     ),
-                  ),
-                ],
-              ),
-            ),
-            SizedBox(height: screenHeight * 0.02),
-            GestureDetector(
-              onPanUpdate: (details) {
-                if (details.delta.dx > 5) {
-                  setState(() {
-                    _animationController.forward();
-                  });
-                } else if (details.delta.dx < -5) {
-                  setState(() {
-                    _animationController.forward();
-                  });
-                }
-              },
-              child: AnimatedBuilder(
-                animation: _animationController,
-                builder: (context, child) {
-                  return Transform(
-                    transform: Matrix4.identity()
-                      ..setEntry(3, 2, 0.001)
-                      ..rotateY(_animationController.value * 3.1416),
-                    alignment: Alignment.center,
-                    child: _isFront ? _buildFrontCard(screenWidth, screenHeight) : _buildBackCard(screenWidth, screenHeight),
                   );
-                },
+                }).toList(),
               ),
             ),
-            SizedBox(height: screenHeight * 0.01),
-            GestureDetector(
-              onTap: () {
-                setState(() {
-                  _animationController.forward(); // Animasyonu başlat
-                });
-              },
-              child: Container(
-                padding: EdgeInsets.symmetric(horizontal: widget.screenWidth * 0.05),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).scaffoldBackgroundColor,
-                  borderRadius: BorderRadius.circular(5),
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Image.asset('assets/flip.png', width: widget.screenWidth * 0.16, height: widget.screenHeight * 0.08), // Soldaki görsel
-                          SizedBox(width: widget.screenWidth * 0.02), // Boşluk
-                          Text(
-                            "Sayfayı Çevir",
-                            style: TextStyle(
-                              fontSize: widget.screenWidth * 0.09375,
-                              color: Theme.of(context).colorScheme.onSurface,
-                              fontWeight: FontWeight.w800,
-                              fontFamily: AppFontSettings.labelFontFamily,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+          ),
+          if (_folders.isNotEmpty)
+            ActionChip(
+              avatar: const Icon(Icons.folder_outlined, size: 18),
+              label: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: screenWidth * 0.25),
+                child: Text(
+                  _selectedFolder.isEmpty ? "Varsayılan" : _selectedFolder,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
-            ),
-            SizedBox(height: screenHeight * 0.02),
-            GestureDetector(
-              onTap: () {
-                if (_folders.isEmpty) {
-                  _saveNote();
-                } else {
-                  _showFolderSelectionDialog();
+              onPressed: () async {
+                final folder = await _pickFolder();
+                if (folder != null) {
+                  setState(() {
+                    _selectedFolder = folder;
+                    _folderChosen = true;
+                  });
                 }
-                setState(() {
-                  _isNoteSaved = true; // Mark the note as saved
-                });
               },
-              child: Container(
-                padding: EdgeInsets.symmetric(horizontal: widget.screenWidth * 0.05),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).scaffoldBackgroundColor,
-                  borderRadius: BorderRadius.circular(5),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCard(double screenWidth) {
+    final controller = _isFront ? _frontController : _backController;
+    final style = NoteColor.style(_selectedColor);
+    return NoteCard(
+      colorName: _selectedColor,
+      width: double.infinity,
+      child: _isTextVisible
+          ? Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(top: 32),
+                  child: NoteCardLabel(
+                    colorName: _selectedColor,
+                    text: _isFront ? "ÖN YÜZ · SORU" : "ARKA YÜZ · CEVAP",
+                  ),
                 ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Image.asset('assets/file_yellow.png', width: widget.screenWidth * 0.16, height: widget.screenHeight * 0.08), // Soldaki görsel
-                          SizedBox(width: widget.screenWidth * 0.02), // Boşluk
-                          Text(
-                            "Notu Kaydet",
-                            style: TextStyle(
-                              fontSize: widget.screenWidth * 0.09375,
-                              color: Theme.of(context).colorScheme.onSurface,
-                              fontWeight: FontWeight.w800,
-                              fontFamily: AppFontSettings.labelFontFamily,
-                            ),
-                          ),
-                        ],
+                Expanded(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.08, vertical: 8),
+                    child: TextField(
+                      key: ValueKey(_isFront),
+                      controller: controller,
+                      expands: true,
+                      maxLines: null,
+                      textAlign: TextAlign.center,
+                      textAlignVertical: TextAlignVertical.center,
+                      keyboardType: TextInputType.multiline,
+                      textCapitalization: TextCapitalization.sentences,
+                      onChanged: (_) => setState(() {}),
+                      decoration: InputDecoration(
+                        hintText: _isFront ? "Ön yüz yazısını buraya yazın..." : "Arka yüz yazısını buraya yazın...",
+                        hintStyle: TextStyle(color: style.text.withValues(alpha: 0.45)),
+                        border: InputBorder.none,
                       ),
+                      style: TextStyle(fontSize: screenWidth * 0.055, color: style.text),
+                      cursorColor: style.ink,
                     ),
-                  ],
+                  ),
+                ),
+              ],
+            )
+          : null,
+    );
+  }
+
+  Widget _buildLargeButtons(double screenWidth, double h) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: h * 0.01),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _largeButton("Sayfayı Çevir", 'assets/flip.png', _flip, screenWidth, h),
+          _largeButton(
+              _isSaving ? "Kaydediliyor..." : "Notu Kaydet", 'assets/file_yellow.png', _onSavePressed, screenWidth, h),
+        ],
+      ),
+    );
+  }
+
+  Widget _largeButton(String text, String asset, VoidCallback onTap, double screenWidth, double h) {
+    final iconHeight = (h * 0.065).clamp(32.0, 64.0);
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.05, vertical: 2),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Image.asset(asset, width: iconHeight * 2, height: iconHeight),
+            SizedBox(width: screenWidth * 0.02),
+            Flexible(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  text,
+                  style: TextStyle(
+                    fontSize: screenWidth * 0.085,
+                    color: Theme.of(context).colorScheme.onSurface,
+                    fontWeight: FontWeight.w800,
+                    fontFamily: AppFontSettings.labelFontFamily,
+                  ),
                 ),
               ),
             ),
-            SizedBox(height: screenHeight * 0.02),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildFrontCard(double screenWidth, double screenHeight) {
-    return Container(
-      width: screenWidth * 0.95,
-      height: screenHeight * 0.65,
-      decoration: BoxDecoration(
-        color: NoteColor.getColor(_selectedColor),
-        image: DecorationImage(
-          image: AssetImage("assets/card_template.png"),
-          fit: BoxFit.cover,
-          colorFilter: ColorFilter.mode(
-            NoteColor.getColor(_selectedColor).withValues(alpha: 0.3),
-            BlendMode.softLight,
+  /// Klavye açıkken / kısa ekranlarda tek satırlık butonlar.
+  Widget _buildCompactButtons(double screenWidth) {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(screenWidth * 0.04, 2, screenWidth * 0.04, 6),
+      child: Row(
+        children: [
+          Expanded(
+            child: OutlinedButton.icon(
+              onPressed: _flip,
+              icon: const Icon(Icons.flip),
+              label: const FittedBox(child: Text("Çevir")),
+              style: OutlinedButton.styleFrom(foregroundColor: Colors.brown),
+            ),
           ),
-        ),
-        borderRadius: BorderRadius.circular(15),
-      ),
-      child: Center(
-        child: Padding(
-          padding: EdgeInsets.all(screenWidth * 0.05),
-          child: _isTextVisible
-              ? TextField(
-                  controller: _frontController,
-                  maxLines: null,
-                  textAlign: TextAlign.center,
-                  keyboardType: TextInputType.multiline,
-                  textInputAction: TextInputAction.done,
-                  onSubmitted: (_) {
-                    FocusScope.of(context).unfocus();
-                  },
-                  decoration: InputDecoration(
-                    hintText: "Ön yüz yazısını buraya yazın...",
-                    border: InputBorder.none,
-                  ),
-                  style: TextStyle(fontSize: screenWidth * 0.05625),
-                )
-              : null,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBackCard(double screenWidth, double screenHeight) {
-    return Container(
-      width: screenWidth * 0.95,
-      height: screenHeight * 0.65,
-      decoration: BoxDecoration(
-        color: NoteColor.getColor(_selectedColor),
-        image: DecorationImage(
-          image: AssetImage("assets/card_template.png"),
-          fit: BoxFit.cover,
-          colorFilter: ColorFilter.mode(
-            NoteColor.getColor(_selectedColor).withValues(alpha: 0.3),
-            BlendMode.softLight,
+          const SizedBox(width: 10),
+          Expanded(
+            child: FilledButton.icon(
+              onPressed: _onSavePressed,
+              icon: const Icon(Icons.save_outlined),
+              label: const FittedBox(child: Text("Kaydet")),
+              style: FilledButton.styleFrom(backgroundColor: Colors.brown),
+            ),
           ),
-        ),
-        borderRadius: BorderRadius.circular(15),
-      ),
-      child: Center(
-        child: Padding(
-          padding: EdgeInsets.all(screenWidth * 0.05),
-          child: _isTextVisible
-              ? TextField(
-                  controller: _backController,
-                  maxLines: null,
-                  textAlign: TextAlign.center,
-                  keyboardType: TextInputType.multiline,
-                  textInputAction: TextInputAction.done,
-                  onSubmitted: (_) {
-                    FocusScope.of(context).unfocus();
-                  },
-                  decoration: InputDecoration(
-                    hintText: "Arka yüz yazısını buraya yazın...",
-                    border: InputBorder.none,
-                  ),
-                  style: TextStyle(fontSize: screenWidth * 0.05625),
-                )
-              : null,
-        ),
+        ],
       ),
     );
   }
 }
-

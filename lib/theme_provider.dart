@@ -25,7 +25,7 @@ class AppFontSettings {
   static const String defaultFontFamily = 'Cursive';
 
   static const Map<String, String> availableFonts = {
-    'Cursive': 'El Yazisi (Cursive)',
+    'Cursive': 'El Yazısı',
     'Roboto': 'Roboto',
     'serif': 'Serif',
     'sans-serif': 'Sans Serif',
@@ -111,50 +111,52 @@ class ThemeProvider extends ChangeNotifier {
   }
 }
 
+/// Bir not renginin kart tasarımı: kağıt (zemin), mürekkep (çerçeve/etiket) ve simge.
+class NoteCardStyle {
+  final Color paper;
+  final Color ink;
+  final IconData icon;
+  final String label;
+
+  const NoteCardStyle(this.paper, this.ink, this.icon, this.label);
+
+  /// Kağıdın açık ve koyu tonları (hafif degrade için).
+  Color get paperLight => Color.lerp(paper, Colors.white, 0.35)!;
+  Color get paperDark => Color.lerp(paper, ink, 0.08)!;
+
+  /// Kart üstündeki ana yazı rengi: mürekkebin çok koyu hali, okunurluk için.
+  Color get text => Color.lerp(ink, Colors.black, 0.6)!;
+}
+
 class NoteColor {
-  static const Map<String, Color> colors = {
-    'default': Colors.white,
-    'yellow': Color(0xFFFFF9C4),
-    'pink': Color(0xFFF8BBD0),
-    'blue': Color(0xFFBBDEFB),
-    'green': Color(0xFFC8E6C9),
-    'orange': Color(0xFFFFE0B2),
-    'purple': Color(0xFFE1BEE7),
+  static const Map<String, NoteCardStyle> styles = {
+    'default': NoteCardStyle(Color(0xFFE8CCBD), Color(0xFF4E342E), Icons.auto_stories_outlined, 'Klasik'),
+    'yellow': NoteCardStyle(Color(0xFFFFE9A0), Color(0xFF7A5900), Icons.lightbulb_outline, 'Fikir'),
+    'pink': NoteCardStyle(Color(0xFFF8C6D6), Color(0xFF8E2450), Icons.favorite_border, 'Sevgi'),
+    'blue': NoteCardStyle(Color(0xFFC4DCF5), Color(0xFF1D4E89), Icons.school_outlined, 'Okul'),
+    'green': NoteCardStyle(Color(0xFFCDE8C4), Color(0xFF2D6A33), Icons.eco_outlined, 'Doğa'),
+    'orange': NoteCardStyle(Color(0xFFFFD1A6), Color(0xFF9A4600), Icons.local_fire_department_outlined, 'Önemli'),
+    'purple': NoteCardStyle(Color(0xFFDFCAF0), Color(0xFF5B3290), Icons.auto_awesome_outlined, 'Hayal'),
   };
 
-  static List<String> get colorNames => colors.keys.toList();
+  /// Geriye dönük uyumluluk: rengin kağıt tonu.
+  static Map<String, Color> get colors => styles.map((k, v) => MapEntry(k, v.paper));
 
-  static Color getColor(String colorName) {
-    return colors[colorName] ?? colors['default']!;
-  }
+  /// Klasik kartın yazı rengi (eski kodlar için).
+  static const Color cardTextColor = Color(0xDD000000);
+
+  static List<String> get colorNames => styles.keys.toList();
+
+  static NoteCardStyle style(String? colorName) => styles[colorName] ?? styles['default']!;
+
+  static Color getColor(String colorName) => style(colorName).paper;
 
   static String getColorName(Color color) {
-    for (var entry in colors.entries) {
-      if (entry.value == color) {
-        return entry.key;
-      }
+    for (final entry in styles.entries) {
+      if (entry.value.paper == color) return entry.key;
     }
     return 'default';
   }
 
-  static String getLocalizedName(String colorName) {
-    switch (colorName) {
-      case 'default':
-        return 'Varsayılan';
-      case 'yellow':
-        return 'Sarı';
-      case 'pink':
-        return 'Pembe';
-      case 'blue':
-        return 'Mavi';
-      case 'green':
-        return 'Yeşil';
-      case 'orange':
-        return 'Turuncu';
-      case 'purple':
-        return 'Mor';
-      default:
-        return 'Varsayılan';
-    }
-  }
+  static String getLocalizedName(String colorName) => style(colorName).label;
 }

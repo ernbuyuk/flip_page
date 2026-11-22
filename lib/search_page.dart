@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert';
 import 'new_note_page.dart';
 import 'navigation_helper.dart';
+import 'note_storage.dart';
+import 'theme_provider.dart';
 
 class SearchPage extends StatefulWidget {
   final double screenWidth;
@@ -33,16 +33,14 @@ class _SearchPageState extends State<SearchPage> {
   }
 
   Future<void> _loadNotes() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    List<String>? notesJson = prefs.getStringList("notes") ?? [];
-    setState(() {
-      _allNotes = notesJson.map((note) => jsonDecode(note) as Map<String, dynamic>).toList();
-      _filteredNotes = _allNotes;
-    });
+    final notes = await NoteStorage.loadNotes();
+    if (!mounted) return;
+    _allNotes = notes.reversed.toList(); // en yeni üstte
+    _filterNotes();
   }
 
   void _filterNotes() {
-    String query = _searchController.text.toLowerCase();
+    String query = _searchController.text.trim().toLowerCase();
     setState(() {
       if (query.isEmpty) {
         _filteredNotes = _allNotes;
@@ -57,17 +55,9 @@ class _SearchPageState extends State<SearchPage> {
     });
   }
 
-  void _openNote(int index) {
+  Future<void> _openNote(int index) async {
     Map<String, dynamic> note = _filteredNotes[index];
-    // Find the original index in _allNotes
-    int originalIndex = _allNotes.indexWhere((n) => 
-      n['frontText'] == note['frontText'] && 
-      n['backText'] == note['backText'] && 
-      n['folder'] == note['folder'] &&
-      n['color'] == note['color']
-    );
-    
-    Navigator.push(
+    await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => NewNotePage(
@@ -76,12 +66,13 @@ class _SearchPageState extends State<SearchPage> {
           frontText: note['frontText'],
           backText: note['backText'],
           isEditMode: true,
-          noteIndex: originalIndex,
+          noteId: note['id'] as String,
           folderName: note['folder'],
           color: note['color'],
         ),
       ),
-    ).then((_) => _loadNotes());
+    );
+    await _loadNotes();
   }
 
   @override
@@ -92,20 +83,25 @@ class _SearchPageState extends State<SearchPage> {
         children: [
           Padding(
             padding: EdgeInsets.only(
-              top: widget.screenHeight * 0.04,
+              top: 12,
               left: widget.screenWidth * 0.05,
               right: widget.screenWidth * 0.05,
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                SizedBox(width: widget.screenWidth * 0.075),
-                Text(
-                  "Not Ara",
-                  style: TextStyle(
-                    fontSize: widget.screenWidth * 0.1125,
-                    fontWeight: FontWeight.w800,
-                    fontFamily: "Cursive",
+                SizedBox(width: widget.screenWidth * 0.09375),
+                Flexible(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      "Not Ara",
+                      style: TextStyle(
+                        fontSize: widget.screenWidth * 0.1,
+                        fontWeight: FontWeight.w800,
+                        fontFamily: AppFontSettings.labelFontFamily,
+                      ),
+                    ),
                   ),
                 ),
                 GestureDetector(
@@ -115,7 +111,7 @@ class _SearchPageState extends State<SearchPage> {
                   child: Image.asset(
                     'assets/exit.png',
                     width: widget.screenWidth * 0.09375,
-                    height: widget.screenHeight * 0.06,
+                    height: widget.screenWidth * 0.09375,
                   ),
                 ),
               ],
@@ -131,12 +127,18 @@ class _SearchPageState extends State<SearchPage> {
               decoration: InputDecoration(
                 hintText: "Notlarda ara...",
                 prefixIcon: Icon(Icons.search),
+                suffixIcon: _searchController.text.isEmpty
+                    ? null
+                    : IconButton(
+                        icon: Icon(Icons.clear),
+                        onPressed: () => _searchController.clear(),
+                      ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
                   borderSide: BorderSide(color: Colors.brown),
                 ),
                 filled: true,
-                fillColor: Colors.white,
+                fillColor: Theme.of(context).cardColor,
               ),
               style: TextStyle(fontSize: widget.screenWidth * 0.045),
             ),
@@ -145,12 +147,10 @@ class _SearchPageState extends State<SearchPage> {
             child: _filteredNotes.isEmpty
                 ? Center(
                     child: Text(
-                      _searchController.text.isEmpty
-                          ? "Not bulunamadı"
-                          : "Arama sonucu bulunamadı",
+                      _searchController.text.isEmpty ? "Not bulunamadı" : "Arama sonucu bulunamadı",
                       style: TextStyle(
                         fontSize: widget.screenWidth * 0.05,
-                        fontFamily: "Cursive",
+                        fontFamily: AppFontSettings.labelFontFamily,
                       ),
                     ),
                   )
@@ -167,8 +167,22 @@ class _SearchPageState extends State<SearchPage> {
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
                         ),
+                        clipBehavior: Clip.antiAlias,
                         child: ListTile(
                           onTap: () => _openNote(index),
+                          leading: Builder(builder: (context) {
+                            final style = NoteColor.style((note['color'] ?? 'default').toString());
+                            return Container(
+                              width: 34,
+                              height: 34,
+                              decoration: BoxDecoration(
+                                color: style.paper,
+                                shape: BoxShape.circle,
+                                border: Border.all(color: style.ink.withValues(alpha: 0.5)),
+                              ),
+                              child: Icon(style.icon, size: 18, color: style.ink),
+                            );
+                          }),
                           title: Text(
                             note['frontText'] ?? '',
                             style: TextStyle(

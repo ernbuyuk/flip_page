@@ -18,7 +18,7 @@ https://play.google.com/store/apps/details?id=com.bg.flip_page
 - **Yeni Not Oluşturma**: Ön ve arka yüzü olan flashcard tarzı notlar oluşturun
 - **Not Düzenleme**: Mevcut notları düzenleyin
 - **Not Silme**: İstenmeyen notları silin
-- **Renk Kodlama**: Notlarınızı 7 farklı renkle kategorize edin (Sarı, Pembe, Mavi, Yeşil, Turuncu, Mor, Varsayılan)
+- **Renkli Kart Temaları**: 7 kart teması; kartın tamamı, çerçevesi ve simgesi renge göre değişir (Klasik, Fikir, Sevgi, Okul, Doğa, Önemli, Hayal)
 - **Not Paylaşma**: Tek tek notları başkalarıyla paylaşın
 
 ### 📁 Klasör Organizasyonu
@@ -48,6 +48,25 @@ https://play.google.com/store/apps/details?id=com.bg.flip_page
 - **Karanlık Mod**: Göz dostu karanlık tema desteği
 - **Renkli Kartlar**: Notlarınızı renklendirerek görsel olarak organize edin
 - **Responsive Tasarım**: Farklı ekran boyutlarına uyumlu tasarım
+
+## v1.3.0 Değişiklikleri
+
+- **Aralıklı tekrar**: Çalışma modu artık sadece tekrar zamanı gelen kartları getirir. Bilinen kartın tekrar aralığı büyür (1 gün → 3 gün → ~1 hafta → ...), bilinmeyen kart aynı gün tekrar gelir. Ana sayfada "Bugün N tekrar" rozeti, Notlarım'da çalışma butonunda tekrar sayısı, istatistiklerde "Bugün Tekrar" ve "Öğrenildi" (21+ gün aralık) kartları. İstenirse çalışma menüsünden "Sadece bugünkü tekrarlar" kapatılıp tüm kartlar çalışılabilir.
+- **Sesli okuma**: Kartlardaki hoparlör butonuyla yazı telefonun metin okuma motoruyla okunur. Ayarlar > Sesli Okuma'dan ön ve arka yüz için ayrı dil (Türkçe, İngilizce, Almanca, ...), okuma hızı ve "çalışırken otomatik oku" seçilebilir.
+- **Renkli kart temaları**: Seçilen renk kartın tamamını, çerçevesini ve simgesini değiştirir.
+- **Düzeltme**: Çalışma modunda "Bilmiyorum" denen kart sonsuz kez tekrar ediliyor, oturum bitmiyordu. Artık bilinmeyen kart tur sonunda bir kez tekrar gösterilir.
+
+## v1.2.0 Değişiklikleri
+
+- **Android 16 (API 36)** hedefleniyor (Google Play hedef API şartı).
+- **Ekran uyumu**: Butonların bazı telefonlarda aşağıda kalması/kaydırma gerektirmesi düzeltildi. Sayfalar artık sistem çubukları (çentik, 3 tuşlu gezinme) hariç gerçekten kullanılabilir alana göre boyutlanıyor; aşırı büyük sistem yazı boyutu sınırlandırıldı; klavye açıkken Kaydet/Çevir butonları görünür kalıyor.
+- **Veri hatası düzeltmeleri**: Karıştırılmış listede "Düzenle" yanlış notu değiştirebiliyordu; klasör görünümünde silme diğer klasörlerin notlarını silebiliyordu. Notlara artık benzersiz `id` atanıyor (eski notlar otomatik taşınır).
+- **Karanlık mod**: Klasör kartları, arama kutusu ve not kartlarında beyaz üstüne beyaz yazı sorunu giderildi.
+- **Yeni**: Renkli kart temaları (kartın tamamı, çerçevesi ve simgesi renge göre değişir), not rengi seçimi, not oluştururken klasör seçimi, sil onayı, klasör yeniden adlandırma ve not sayıları, klasör silerken notları taşıma seçeneği, çalışma modunda "önce zor kartlar" ve "cevaptan başla", kart bazında doğru/yanlış takibi, istatistiklerde başarı oranı ve en zor kartlar, yedek içe aktarırken yinelenen notların atlanması, sistem geri tuşunda kaydedilmemiş not uyarısı.
+
+### Testler
+
+`flutter test` 7 farklı ekran profilinde (320x568 küçük ekran, çentikli, 3 tuşlu gezinmeli, %130–150 yazı boyutu, klavye açık, tablet yatay) tüm sayfaların taşma yapmadığını ve ana butonların kaydırmadan görünür olduğunu doğrular.
 
 ## Kurulum
 

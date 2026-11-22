@@ -1,142 +1,196 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'dart:convert';
 import 'dart:io';
 
+import 'note_storage.dart';
+
 class ExportImportHelper {
+  static void _snack(BuildContext context, String text) {
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(text)));
+  }
+
   // Export notes to a JSON file
   static Future<void> exportNotes(BuildContext context) async {
     try {
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      List<String>? notes = prefs.getStringList("notes") ?? [];
-      List<String>? folders = prefs.getStringList("folders") ?? [];
+      final notes = await NoteStorage.loadNotes();
+      final folders = await NoteStorage.loadFolders();
+
+      if (notes.isEmpty && folders.isEmpty) {
+        _snack(context, "Dışa aktarılacak not bulunamadı.");
+        return;
+      }
 
       Map<String, dynamic> exportData = {
-        "notes": notes,
+        "app": "FlipPage",
+        "formatVersion": 2,
+        // Eski sürümlerle uyumluluk için notlar JSON metni olarak saklanır.
+        "notes": notes.map(jsonEncode).toList(),
         "folders": folders,
         "exportDate": DateTime.now().toIso8601String(),
       };
 
       String jsonString = jsonEncode(exportData);
 
-      // Get temporary directory
       final directory = await getTemporaryDirectory();
-      final file = File('${directory.path}/flippage_notlar_${DateTime.now().millisecondsSinceEpoch}.json');
+      final date = DateTime.now().toIso8601String().split('T').first;
+      final file = File('${directory.path}/flippage_yedek_$date.json');
       await file.writeAsString(jsonString);
 
-      // Share the file
-      await Share.shareXFiles(
-        [XFile(file.path)],
-        text: 'FlipPage Notlarım - ${DateTime.now().toString().split(' ')[0]}',
+      final result = await Share.shareXFiles(
+        [XFile(file.path, mimeType: 'application/json')],
+        text: 'FlipPage Notlarım - $date',
       );
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Notlar başarıyla dışa aktarıldı!")),
-      );
+      if (result.status == ShareResultStatus.success) {
+        _snack(context, "${notes.length} not dışa aktarıldı!");
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Dışa aktarma hatası: $e")),
-      );
+      _snack(context, "Dışa aktarma hatası: $e");
     }
   }
+
+  static String _contentKey(Map<String, dynamic> n) =>
+      '${n['frontText'] ?? ''}\u0000${n['backText'] ?? ''}\u0000${n['folder'] ?? ''}';
 
   // Import notes from a JSON file
   static Future<void> importNotes(BuildContext context) async {
     try {
-      // Pick a file
+      // Bazı Android dosya yöneticileri .json dosyalarını "application/json"
+      // olarak işaretlemediği için uzantı filtresi dosyaları gri gösterebiliyor.
+      // Bu yüzden her dosya seçilebilir, içerik aşağıda doğrulanır.
       FilePickerResult? result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['json'],
+        type: FileType.any,
+        withData: true,
       );
 
-      if (result != null && result.files.single.path != null) {
-        File file = File(result.files.single.path!);
-        String contents = await file.readAsString();
-        Map<String, dynamic> importData = jsonDecode(contents);
-
-        // Show confirmation dialog
-        bool? confirm = await showDialog<bool>(
-          context: context,
-          builder: (BuildContext context) {
-            return AlertDialog(
-              title: Text("İçe Aktarmayı Onayla"),
-              content: Text(
-                "Bu işlem yedeklenmiş notları mevcut notlarınıza ekleyecektir.\n\n"
-                "⚠️ Not: Aynı notlar tekrar eklenirse yinelenen kayıtlar oluşabilir.\n\n"
-                "Devam etmek istiyor musunuz?",
-              ),
-              actions: [
-                TextButton(
-                  child: Text("İptal"),
-                  onPressed: () {
-                    Navigator.of(context).pop(false);
-                  },
-                ),
-                TextButton(
-                  child: Text("Evet"),
-                  onPressed: () {
-                    Navigator.of(context).pop(true);
-                  },
-                ),
-              ],
-            );
-          },
-        );
-
-        if (confirm == true) {
-          SharedPreferences prefs = await SharedPreferences.getInstance();
-          
-          // Get existing data
-          List<String> existingNotes = prefs.getStringList("notes") ?? [];
-          List<String> existingFolders = prefs.getStringList("folders") ?? [];
-
-          // Add imported data
-          List<String> importedNotes = (importData['notes'] as List).cast<String>();
-          List<String> importedFolders = (importData['folders'] as List?)?.cast<String>() ?? [];
-
-          existingNotes.addAll(importedNotes);
-          existingFolders.addAll(importedFolders.where((f) => !existingFolders.contains(f)));
-
-          // Save combined data
-          await prefs.setStringList("notes", existingNotes);
-          await prefs.setStringList("folders", existingFolders);
-
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text("${importedNotes.length} not başarıyla içe aktarıldı!"),
-            ),
-          );
-        }
+      if (result == null) return;
+      final picked = result.files.single;
+      String contents;
+      if (picked.bytes != null) {
+        contents = utf8.decode(picked.bytes!);
+      } else if (picked.path != null) {
+        contents = await File(picked.path!).readAsString();
+      } else {
+        _snack(context, "Dosya okunamadı.");
+        return;
       }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("İçe aktarma hatası: $e")),
+
+      final decoded = jsonDecode(contents);
+      if (decoded is! Map || decoded['notes'] is! List) {
+        _snack(context, "Bu dosya bir FlipPage yedeği değil.");
+        return;
+      }
+
+      final importedNotes = <Map<String, dynamic>>[];
+      for (final item in decoded['notes'] as List) {
+        final value = item is String ? jsonDecode(item) : item;
+        if (value is Map) importedNotes.add(Map<String, dynamic>.from(value));
+      }
+      final importedFolders = ((decoded['folders'] as List?) ?? []).map((f) => f.toString()).toList();
+
+      final existingNotes = await NoteStorage.loadNotes();
+      final existingFolders = await NoteStorage.loadFolders();
+      final existingIds = existingNotes.map((n) => n['id']).toSet();
+      final existingContent = existingNotes.map(_contentKey).toSet();
+
+      final toAdd = <Map<String, dynamic>>[];
+      for (final note in importedNotes) {
+        final key = _contentKey(note);
+        if (existingContent.contains(key)) continue; // aynı not zaten var
+        if (note['id'] == null || existingIds.contains(note['id'])) {
+          note['id'] = NoteStorage.newId();
+        }
+        existingIds.add(note['id']);
+        existingContent.add(key);
+        toAdd.add(note);
+      }
+      final skipped = importedNotes.length - toAdd.length;
+
+      if (!context.mounted) return;
+      bool? confirm = await showDialog<bool>(
+        context: context,
+        builder: (BuildContext dialogContext) {
+          return AlertDialog(
+            title: const Text("İçe Aktarmayı Onayla"),
+            content: Text(
+              "${toAdd.length} yeni not mevcut notlarınıza eklenecek."
+              "${skipped > 0 ? "\n\n$skipped not zaten kayıtlı olduğu için atlanacak." : ""}"
+              "\n\nDevam etmek istiyor musunuz?",
+            ),
+            actions: [
+              TextButton(
+                child: const Text("İptal"),
+                onPressed: () => Navigator.of(dialogContext).pop(false),
+              ),
+              TextButton(
+                child: const Text("Evet"),
+                onPressed: () => Navigator.of(dialogContext).pop(true),
+              ),
+            ],
+          );
+        },
       );
+
+      if (confirm != true) return;
+
+      final folders = [...existingFolders];
+      for (final f in importedFolders) {
+        if (f.trim().isNotEmpty && !folders.contains(f)) folders.add(f);
+      }
+      // Notlarda geçen ama klasör listesinde olmayan klasörleri de ekle.
+      for (final n in toAdd) {
+        final f = (n['folder'] ?? '').toString();
+        if (f.isNotEmpty && !folders.contains(f)) folders.add(f);
+      }
+
+      await NoteStorage.saveNotes([...existingNotes, ...toAdd]);
+      await NoteStorage.saveFolders(folders);
+
+      _snack(context, "${toAdd.length} not başarıyla içe aktarıldı!");
+    } on FormatException {
+      _snack(context, "Dosya geçerli bir JSON değil.");
+    } catch (e) {
+      _snack(context, "İçe aktarma hatası: $e");
     }
   }
 
   // Get statistics about notes
   static Future<Map<String, dynamic>> getStatistics() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    List<String>? notesJson = prefs.getStringList("notes") ?? [];
-    List<String>? folders = prefs.getStringList("folders") ?? [];
-
-    List<Map<String, dynamic>> notes = notesJson.map((note) => jsonDecode(note) as Map<String, dynamic>).toList();
+    final notes = await NoteStorage.loadNotes();
+    final folders = await NoteStorage.loadFolders();
 
     Map<String, int> folderCounts = {};
+    int correct = 0;
+    int wrong = 0;
+    int reviewed = 0;
     for (var note in notes) {
-      String folder = note['folder'] ?? 'Default';
-      if (folder.isEmpty) folder = 'Default';
+      String folder = (note['folder'] ?? '').toString();
       folderCounts[folder] = (folderCounts[folder] ?? 0) + 1;
+      final c = ((note['correctCount'] as num?) ?? 0).toInt();
+      final w = ((note['wrongCount'] as num?) ?? 0).toInt();
+      correct += c;
+      wrong += w;
+      if (c + w > 0) reviewed++;
     }
+
+    final hardest = notes.where((n) => ((n['wrongCount'] as num?) ?? 0) > 0).toList()
+      ..sort((a, b) => ((b['wrongCount'] as num?) ?? 0).compareTo((a['wrongCount'] as num?) ?? 0));
 
     return {
       'totalNotes': notes.length,
       'totalFolders': folders.length,
       'folderCounts': folderCounts,
+      'reviewedNotes': reviewed,
+      'successRate': correct + wrong == 0 ? null : correct / (correct + wrong) * 100,
+      'hardestNotes': hardest.take(5).toList(),
+      'dueToday': SpacedRepetition.dueCount(notes),
+      'learnedNotes': notes.where((n) => SpacedRepetition.intervalOf(n) >= SpacedRepetition.learnedInterval).length,
     };
   }
 }

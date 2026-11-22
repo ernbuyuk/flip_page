@@ -4,6 +4,7 @@ import 'statistics_page.dart';
 import 'search_page.dart';
 import 'navigation_helper.dart';
 import 'theme_provider.dart';
+import 'speech_service.dart';
 
 class SettingsPage extends StatefulWidget {
   final double screenWidth;
@@ -24,6 +25,9 @@ class _SettingsPageState extends State<SettingsPage> {
     super.initState();
     _loadThemePreference();
     _loadLabelFontPreference();
+    SpeechService.load().then((_) {
+      if (mounted) setState(() {});
+    });
   }
 
   Future<void> _loadThemePreference() async {
@@ -43,7 +47,7 @@ class _SettingsPageState extends State<SettingsPage> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          value ? "Karanlik mod etkinlestirildi." : "Aydinlik mod etkinlestirildi.",
+          value ? "Karanlık mod etkinleştirildi." : "Aydınlık mod etkinleştirildi.",
         ),
       ),
     );
@@ -64,7 +68,156 @@ class _SettingsPageState extends State<SettingsPage> {
       _selectedLabelFont = fontFamily;
     });
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Yazi tipi guncellendi.")),
+      SnackBar(content: Text("Yazı tipi güncellendi.")),
+    );
+  }
+
+  String _speechSummary() {
+    final f = SpeechService.languages[SpeechService.frontLang] ?? SpeechService.frontLang;
+    final b = SpeechService.languages[SpeechService.backLang] ?? SpeechService.backLang;
+    return f == b ? "Dil: $f" : "Ön: $f · Arka: $b";
+  }
+
+  Future<void> _showSpeechSettings() async {
+    await SpeechService.load();
+    if (!mounted) return;
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (context, setSheet) {
+          Widget langPicker(String title, String value, ValueChanged<String> onChanged) {
+            return ListTile(
+              title: Text(title),
+              trailing: DropdownButton<String>(
+                value: value,
+                underline: const SizedBox.shrink(),
+                onChanged: (v) {
+                  if (v != null) onChanged(v);
+                },
+                items: SpeechService.languages.entries
+                    .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value)))
+                    .toList(),
+              ),
+            );
+          }
+
+          return SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const ListTile(
+                    leading: Icon(Icons.record_voice_over),
+                    title: Text("Sesli Okuma", style: TextStyle(fontWeight: FontWeight.bold)),
+                    subtitle: Text("Örn. kelime çalışırken ön yüz Türkçe, arka yüz İngilizce."),
+                  ),
+                  langPicker("Ön yüz (soru) dili", SpeechService.frontLang, (v) async {
+                    await SpeechService.save(front: v);
+                    setSheet(() {});
+                  }),
+                  langPicker("Arka yüz (cevap) dili", SpeechService.backLang, (v) async {
+                    await SpeechService.save(back: v);
+                    setSheet(() {});
+                  }),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: SegmentedButton<double>(
+                      segments: SpeechService.rates.entries
+                          .map((e) => ButtonSegment(value: e.key, label: Text(e.value)))
+                          .toList(),
+                      selected: {SpeechService.rate},
+                      onSelectionChanged: (v) async {
+                        await SpeechService.save(newRate: v.first);
+                        setSheet(() {});
+                      },
+                    ),
+                  ),
+                  SwitchListTile(
+                    title: const Text("Çalışırken otomatik oku"),
+                    subtitle: const Text("Kart açılınca ya da çevrilince kendiliğinden okunur."),
+                    value: SpeechService.autoRead,
+                    onChanged: (v) async {
+                      await SpeechService.save(auto: v);
+                      setSheet(() {});
+                    },
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            icon: const Icon(Icons.volume_up),
+                            label: const FittedBox(child: Text("Ön yüzü dene")),
+                            onPressed: () => _testSpeech(front: true),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            icon: const Icon(Icons.volume_up),
+                            label: const FittedBox(child: Text("Arka yüzü dene")),
+                            onPressed: () => _testSpeech(front: false),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+    if (mounted) setState(() {});
+  }
+
+  static const Map<String, String> _samples = {
+    'tr-TR': 'Merhaba, FlipPage ile çalışmaya hazırım.',
+    'en-US': 'Hello, I am ready to study with FlipPage.',
+    'en-GB': 'Hello, I am ready to study with FlipPage.',
+    'de-DE': 'Hallo, ich bin bereit zu lernen.',
+    'fr-FR': 'Bonjour, je suis prêt à étudier.',
+    'es-ES': 'Hola, estoy listo para estudiar.',
+    'it-IT': 'Ciao, sono pronto a studiare.',
+    'ru-RU': 'Привет, я готов учиться.',
+    'ar-SA': 'مرحبا، أنا مستعد للدراسة.',
+    'ja-JP': 'こんにちは、勉強の準備ができました。',
+  };
+
+  Future<void> _testSpeech({required bool front}) async {
+    final lang = SpeechService.langFor(front: front);
+    final error = await SpeechService.speak(_samples[lang] ?? 'FlipPage', front: front);
+    if (error != null && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error)));
+    }
+  }
+
+  void _showFontPicker() {
+    showModalBottomSheet(
+      context: context,
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const ListTile(title: Text("Yazı Tipi", style: TextStyle(fontWeight: FontWeight.bold))),
+            ...AppFontSettings.availableFonts.entries.map(
+              (entry) => ListTile(
+                title: Text(entry.value, style: TextStyle(fontFamily: entry.key, fontSize: 18)),
+                trailing: entry.key == _selectedLabelFont ? const Icon(Icons.check, color: Colors.brown) : null,
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  _changeLabelFont(entry.key);
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -76,20 +229,25 @@ class _SettingsPageState extends State<SettingsPage> {
         children: [
           Padding(
             padding: EdgeInsets.only(
-              top: widget.screenHeight * 0.04,
+              top: 12,
               left: widget.screenWidth * 0.05,
               right: widget.screenWidth * 0.05,
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                SizedBox(width: widget.screenWidth * 0.075),
-                Text(
-                  "Ayarlar",
-                  style: TextStyle(
-                    fontSize: widget.screenWidth * 0.1125,
-                    fontWeight: FontWeight.w800,
-                    fontFamily: AppFontSettings.labelFontFamily,
+                SizedBox(width: widget.screenWidth * 0.09375),
+                Flexible(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      "Ayarlar",
+                      style: TextStyle(
+                        fontSize: widget.screenWidth * 0.1,
+                        fontWeight: FontWeight.w800,
+                        fontFamily: AppFontSettings.labelFontFamily,
+                      ),
+                    ),
                   ),
                 ),
                 GestureDetector(
@@ -99,13 +257,13 @@ class _SettingsPageState extends State<SettingsPage> {
                   child: Image.asset(
                     'assets/exit.png',
                     width: widget.screenWidth * 0.09375,
-                    height: widget.screenHeight * 0.06,
+                    height: widget.screenWidth * 0.09375,
                   ),
                 ),
               ],
             ),
           ),
-          SizedBox(height: widget.screenHeight * 0.05),
+          SizedBox(height: 16),
           Expanded(
             child: ListView(
               padding: EdgeInsets.symmetric(horizontal: widget.screenWidth * 0.05),
@@ -168,7 +326,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       ),
                     ),
                     title: Text(
-                      "Yazi Tipi",
+                      "Yazı Tipi",
                       style: TextStyle(
                         fontSize: widget.screenWidth * 0.045,
                         fontWeight: FontWeight.w700,
@@ -176,34 +334,28 @@ class _SettingsPageState extends State<SettingsPage> {
                       ),
                     ),
                     subtitle: Text(
-                      "Buton ve baslik yazilarini degistir",
+                      AppFontSettings.availableFonts[_selectedLabelFont] ?? "Buton ve başlık yazılarını değiştir",
                       style: TextStyle(
                         fontSize: widget.screenWidth * 0.035,
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
-                    trailing: DropdownButtonHideUnderline(
-                      child: DropdownButton<String>(
-                        value: _selectedLabelFont,
-                        items: AppFontSettings.availableFonts.entries
-                            .map(
-                              (entry) => DropdownMenuItem<String>(
-                                value: entry.key,
-                                child: Text(
-                                  entry.value,
-                                  style: TextStyle(fontFamily: entry.key),
-                                ),
-                              ),
-                            )
-                            .toList(),
-                        onChanged: (value) {
-                          if (value != null) {
-                            _changeLabelFont(value);
-                          }
-                        },
-                      ),
+                    trailing: Icon(
+                      Icons.arrow_forward_ios,
+                      size: widget.screenWidth * 0.04,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
+                    onTap: _showFontPicker,
                   ),
+                ),
+                SizedBox(height: widget.screenHeight * 0.02),
+                _buildSettingsCard(
+                  context,
+                  "Sesli Okuma",
+                  _speechSummary(),
+                  Icons.record_voice_over,
+                  Colors.indigo,
+                  _showSpeechSettings,
                 ),
                 SizedBox(height: widget.screenHeight * 0.02),
                 _buildSettingsCard(
@@ -292,7 +444,7 @@ class _SettingsPageState extends State<SettingsPage> {
                         ),
                         SizedBox(height: 10),
                         Text(
-                          "FlipPage v1.1.0",
+                          "FlipPage v1.3.0",
                           style: TextStyle(
                             fontSize: widget.screenWidth * 0.04,
                             fontWeight: FontWeight.w600,
