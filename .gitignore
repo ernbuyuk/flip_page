@@ -43,3 +43,13 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Upload/signing certificates and keys
+*.pem
+*.p12
+*.keystore
+*.jks
+key.properties
+
+# Play Store listing assets (kept local, not pushed)
+/store/

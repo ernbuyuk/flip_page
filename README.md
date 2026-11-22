@@ -1,178 +1,224 @@
 # FlipPage
 
-FlipPage, flashcard tarzında not tutma ve çalışma uygulamasıdır. Flutter ile geliştirilmiştir.
+FlipPage, soru-cevap mantığıyla çalışan dijital not kartları (flashcard) ile kalıcı öğrenmeyi hedefleyen bir Android uygulamasıdır. Flutter ile geliştirilmiştir.
 
-## Uygulama Bilgisi
-
-FlipPage; soru-cevap mantığıyla çalışan dijital kartlar (flashcard) üzerinden düzenli tekrar yapmanızı sağlayan bir not ve öğrenme uygulamasıdır. Hızlı not oluşturma, klasörleme, arama, çalışma modu ve yedekleme özellikleriyle bireysel öğrenme sürecini sade bir arayüzde toplar.
-
-Android uygulama mağazasından uygulamayı denemek için:
+Kartın ön yüzüne soruyu, arka yüzüne cevabı yazarsınız; uygulama her kartı ne zaman tekrar etmeniz gerektiğini **aralıklı tekrar** ile hesaplar, kartları **sesli okuyabilir** ve tamamen **çevrimdışı** çalışır.
 
 [![Google Play'de Dene](https://img.shields.io/badge/Google%20Play-FlipPage-34A853?style=for-the-badge&logo=googleplay&logoColor=white)](https://play.google.com/store/apps/details?id=com.bg.flip_page)
 
 https://play.google.com/store/apps/details?id=com.bg.flip_page
 
+**Güncel sürüm:** 1.3.0 (5) · **Hedef API:** 36 (Android 16) · **Minimum:** Android 7.0 (API 24)
+
 ## Özellikler
 
-### 📝 Not Yönetimi
-- **Yeni Not Oluşturma**: Ön ve arka yüzü olan flashcard tarzı notlar oluşturun
-- **Not Düzenleme**: Mevcut notları düzenleyin
-- **Not Silme**: İstenmeyen notları silin
-- **Renkli Kart Temaları**: 7 kart teması; kartın tamamı, çerçevesi ve simgesi renge göre değişir (Klasik, Fikir, Sevgi, Okul, Doğa, Önemli, Hayal)
-- **Not Paylaşma**: Tek tek notları başkalarıyla paylaşın
+### 🔁 Aralıklı Tekrar
+- Çalışma modu varsayılan olarak sadece **tekrar zamanı gelen** kartları getirir.
+- Bilinen kartın aralığı büyür: 1 gün → 3 gün → ~1 hafta → … (en fazla 1 yıl). Bilinmeyen kart aynı gün tekrar gelir ve daha sık gösterilir.
+- Ana sayfada **"Bugün N tekrar"** rozeti; dokununca bugünkü kartlarla çalışma başlar.
+- Notlarım'daki Çalışma Modu butonunda klasörün tekrar sayısı görünür.
+- Bugünkü kartlar bitince "Bugünlük bu kadar!" ekranı ve sıradaki tekrar günü gösterilir; istenirse tüm kartlar yine de çalışılabilir.
 
-### 📁 Klasör Organizasyonu
-- **Özel Klasörler**: Notlarınızı klasörlere ayırın
-- **Karışık Mod**: Tüm notları karışık bir şekilde görüntüleyin
-- **Klasöre Göre Filtreleme**: Belirli bir klasördeki notları görüntüleyin
+### 🔊 Sesli Okuma
+- Kartlardaki hoparlör butonu yazıyı telefonun metin okuma (TTS) motoruyla okur; okurken tekrar basınca durur.
+- **Ayarlar > Sesli Okuma**: ön ve arka yüz için ayrı dil (Türkçe, İngilizce, Almanca, Fransızca, İspanyolca, İtalyanca, Rusça, Arapça, Japonca), okuma hızı ve "çalışırken otomatik oku".
+- Seçilen dilin ses paketi telefonda yoksa uygulama çökmez, nereden indirileceğini söyler.
 
-### 🔍 Arama ve İstatistikler
-- **Gelişmiş Arama**: Notlarınızı ön yüz, arka yüz veya klasör adına göre arayın
-- **İstatistikler**: 
-  - Toplam not sayısı
-  - Klasör sayısı
-  - Klasörlere göre not dağılımı
+### 🎨 Renkli Kart Temaları
+- 7 tema: **Klasik, Fikir, Sevgi, Okul, Doğa, Önemli, Hayal**.
+- Seçilen tema kartın tamamını, süslü çerçevesini ve filigran simgesini değiştirir; yeni not, not listesi, çalışma modu ve aramada aynı tasarım kullanılır.
 
 ### 📚 Çalışma Modu
-- **İnteraktif Çalışma**: Flashcard'larınızla interaktif olarak çalışın
-- **İlerleme Takibi**: Doğru ve yanlış cevaplarınızı takip edin
-- **Başarı Oranı**: Çalışma seansınızın sonunda detaylı istatistikler görün
-- **Yanlış Cevapların Tekrarı**: Yanlış bildikleriniz otomatik olarak tekrar gösterilir
+- Kartı çevir, "Biliyorum" / "Bilmiyorum" de. Puan kartın ilk cevabıyla hesaplanır.
+- Bilinmeyen kartlar tur sonunda **bir kez** tekrar gösterilir; oturum her zaman sonuç ekranıyla biter.
+- Seçenekler (⋮): sadece bugünkü tekrarlar, kartları otomatik oku, önce zor kartlar, cevaptan başla.
+- Sonuç ekranı: doğru, yanlış, başarı oranı ve tekrarda öğrenilen kartlar.
 
-### 💾 Yedekleme ve Geri Yükleme
-- **Dışa Aktarma**: Tüm notlarınızı ve klasörlerinizi JSON formatında dışa aktarın
-- **İçe Aktarma**: Yedeklenmiş notları geri yükleyin
-- **Veri Güvenliği**: Notlarınızı güvenli bir şekilde yedekleyin
+### 📝 Not ve Klasör Yönetimi
+- Not oluşturma, düzenleme, silme (onaylı) ve paylaşma.
+- Not yazarken renk ve klasör seçimi; kaydedilmemiş not varken geri tuşunda uyarı.
+- Klasör oluşturma, yeniden adlandırma ve not sayıları. Klasör silinirken notlar varsayılana taşınabilir ya da birlikte silinebilir.
+- Karışık mod: tüm notlar karışık sırayla. Kartlar kaydırılarak gezilir, dokunarak çevrilir.
 
-### 🎨 Görünüm
-- **Karanlık Mod**: Göz dostu karanlık tema desteği
-- **Renkli Kartlar**: Notlarınızı renklendirerek görsel olarak organize edin
-- **Responsive Tasarım**: Farklı ekran boyutlarına uyumlu tasarım
+### 🔍 Arama ve İstatistikler
+- Ön yüz, arka yüz veya klasör adına göre arama.
+- İstatistikler: not ve klasör sayısı, çalışılan kartlar, başarı oranı, bugünkü tekrarlar, öğrenilen kartlar (21+ gün aralık), klasör dağılımı ve en çok zorlanılan kartlar.
 
-## v1.3.0 Değişiklikleri
+### 💾 Yedekleme
+- Tüm notlar ve klasörler JSON olarak dışa aktarılır ve geri yüklenir. Tekrar zamanlaması da yedeğe dahildir.
+- İçe aktarırken aynı notlar tekrar eklenmez.
 
-- **Aralıklı tekrar**: Çalışma modu artık sadece tekrar zamanı gelen kartları getirir. Bilinen kartın tekrar aralığı büyür (1 gün → 3 gün → ~1 hafta → ...), bilinmeyen kart aynı gün tekrar gelir. Ana sayfada "Bugün N tekrar" rozeti, Notlarım'da çalışma butonunda tekrar sayısı, istatistiklerde "Bugün Tekrar" ve "Öğrenildi" (21+ gün aralık) kartları. İstenirse çalışma menüsünden "Sadece bugünkü tekrarlar" kapatılıp tüm kartlar çalışılabilir.
-- **Sesli okuma**: Kartlardaki hoparlör butonuyla yazı telefonun metin okuma motoruyla okunur. Ayarlar > Sesli Okuma'dan ön ve arka yüz için ayrı dil (Türkçe, İngilizce, Almanca, ...), okuma hızı ve "çalışırken otomatik oku" seçilebilir.
-- **Renkli kart temaları**: Seçilen renk kartın tamamını, çerçevesini ve simgesini değiştirir.
-- **Düzeltme**: Çalışma modunda "Bilmiyorum" denen kart sonsuz kez tekrar ediliyor, oturum bitmiyordu. Artık bilinmeyen kart tur sonunda bir kez tekrar gösterilir.
+### 🌙 Görünüm ve Uyum
+- Karanlık mod ve el yazısı dahil farklı yazı tipleri.
+- Küçük ekranlı telefonlardan tabletlere kadar butonlar kaydırma gerektirmeden görünür; çentik, 3 tuşlu gezinme ve büyük sistem yazı boyutu desteklenir.
 
-## v1.2.0 Değişiklikleri
+## Kullanım
 
-- **Android 16 (API 36)** hedefleniyor (Google Play hedef API şartı).
-- **Ekran uyumu**: Butonların bazı telefonlarda aşağıda kalması/kaydırma gerektirmesi düzeltildi. Sayfalar artık sistem çubukları (çentik, 3 tuşlu gezinme) hariç gerçekten kullanılabilir alana göre boyutlanıyor; aşırı büyük sistem yazı boyutu sınırlandırıldı; klavye açıkken Kaydet/Çevir butonları görünür kalıyor.
-- **Veri hatası düzeltmeleri**: Karıştırılmış listede "Düzenle" yanlış notu değiştirebiliyordu; klasör görünümünde silme diğer klasörlerin notlarını silebiliyordu. Notlara artık benzersiz `id` atanıyor (eski notlar otomatik taşınır).
-- **Karanlık mod**: Klasör kartları, arama kutusu ve not kartlarında beyaz üstüne beyaz yazı sorunu giderildi.
-- **Yeni**: Renkli kart temaları (kartın tamamı, çerçevesi ve simgesi renge göre değişir), not rengi seçimi, not oluştururken klasör seçimi, sil onayı, klasör yeniden adlandırma ve not sayıları, klasör silerken notları taşıma seçeneği, çalışma modunda "önce zor kartlar" ve "cevaptan başla", kart bazında doğru/yanlış takibi, istatistiklerde başarı oranı ve en zor kartlar, yedek içe aktarırken yinelenen notların atlanması, sistem geri tuşunda kaydedilmemiş not uyarısı.
+### Not oluşturma
+1. Ana sayfada **Yeni Not**'a dokunun.
+2. Üstten kart temasını ve klasörü seçin.
+3. Ön yüze soruyu yazın, **Sayfayı Çevir** ile arka yüze cevabı yazın.
+4. **Notu Kaydet**.
 
-### Testler
+### Çalışma
+1. Ana sayfadaki **"Bugün N tekrar"** rozetine ya da **Notlarım > Çalışma Modu**'na dokunun.
+2. Soruyu okuyun, **Cevabı Göster** ile kartı çevirin. Hoparlöre basarak dinleyebilirsiniz.
+3. **Biliyorum** veya **Bilmiyorum** seçin. Uygulama kartın bir sonraki tekrar gününü planlar.
 
-`flutter test` 7 farklı ekran profilinde (320x568 küçük ekran, çentikli, 3 tuşlu gezinmeli, %130–150 yazı boyutu, klavye açık, tablet yatay) tüm sayfaların taşma yapmadığını ve ana butonların kaydırmadan görünür olduğunu doğrular.
+### Sesli okuma ayarı
+**Ayarlar > Sesli Okuma**. Örneğin İngilizce kelime çalışırken ön yüz dilini "İngilizce", arka yüz dilini "Türkçe" yapın.
 
-## Kurulum
+### Yedekleme
+**Ayarlar > Notları Dışa Aktar** ile yedek alın, **Notları İçe Aktar** ile geri yükleyin.
 
-1. Flutter SDK'nın yüklü olduğundan emin olun
-2. Bağımlılıkları yükleyin:
+> ⚠️ Notlar telefonda saklanır ve uygulama kaldırılınca silinir. Düzenli olarak yedek alın.
+
+## Proje Yapısı
+
+| Dosya | Görevi |
+|---|---|
+| `lib/main.dart` | Uygulama girişi, ana sayfa, `SafeLayout` (sistem çubuklarına göre güvenli alan), "Bugün N tekrar" rozeti |
+| `lib/note_storage.dart` | Notların tek erişim noktası (id'li kayıt, klasör işlemleri) ve `SpacedRepetition` zamanlaması |
+| `lib/note_card.dart` | Renkli kart tasarımı (`NoteCard`), etiket ve renk seçici |
+| `lib/speech_service.dart` | Sesli okuma servisi, ayarları ve hoparlör butonu |
+| `lib/new_note_page.dart` | Not oluşturma/düzenleme |
+| `lib/my_notes_page.dart` | Kart listesi (kaydır/çevir), düzenleme modu |
+| `lib/study_mode_page.dart` | Çalışma modu |
+| `lib/folder_page.dart` | Klasörler |
+| `lib/statistics_page.dart`, `lib/search_page.dart`, `lib/settings_page.dart` | İstatistik, arama, ayarlar |
+| `lib/export_import_helper.dart` | JSON yedekleme ve istatistik hesapları |
+| `lib/theme_provider.dart` | Tema, yazı tipi ve kart renk paleti |
+| `assets/card_frame.png` | Kart çerçevesi (şeffaf, temaya göre renklendirilir) |
+
+### Not veri biçimi
+Notlar `SharedPreferences` içinde JSON olarak tutulur:
+
+```json
+{
+  "id": "…", "frontText": "Apple", "backText": "Elma",
+  "folder": "İngilizce", "color": "green",
+  "correctCount": 3, "wrongCount": 1, "lastReviewedAt": "…",
+  "interval": 3, "ease": 2.55, "dueAt": "2026-11-25T00:00:00.000"
+}
+```
+
+`id` olmayan eski notlara ilk açılışta otomatik id atanır; `dueAt` olmayan notlar hemen çalışılabilir sayılır.
+
+## Geliştirme
+
+### Gereksinimler
+- Flutter 3.38+ (stable)
+- JDK 17
+- Android SDK: platform 36, build-tools 36.0.0, NDK 28.2.13676358, CMake 3.22.1
+
+### Çalıştırma
 ```bash
 flutter pub get
 ```
-
-3. Uygulamayı çalıştırın:
 ```bash
 flutter run
 ```
 
-## Bağımlılıklar
+### Bağımlılıklar
+- `shared_preferences`: yerel veri saklama
+- `flutter_tts`: sesli okuma
+- `file_picker`, `path_provider`: yedek dosyası seçme/kaydetme
+- `share_plus`: not ve yedek paylaşma
+- `intl`: tarih biçimleri
 
-- `flutter`: Flutter framework
-- `cupertino_icons`: iOS stil ikonlar
-- `shared_preferences`: Yerel veri saklama
-- `file_picker`: Dosya seçme için
-- `path_provider`: Dosya yolları için
-- `share_plus`: Paylaşım özelliği için
-- `intl`: Uluslararasılaştırma için
-
-## Kullanım
-
-### Not Oluşturma
-1. Ana sayfadan "Yeni Not" butonuna tıklayın
-2. Kartın ön yüzüne soruyu yazın
-3. "Sayfayı Çevir" ile arka yüze geçin ve cevabı yazın
-4. İstediğiniz rengi seçin
-5. "Notu Kaydet" ile kaydedin
-
-### Çalışma Modu
-1. "Notlarım" > "Çalışma Modu" seçin
-2. Soru kartını okuyun ve cevabı düşünün
-3. Karta dokunarak cevabı görün
-4. "Biliyorum" veya "Bilmiyorum" butonlarından birini seçin
-5. Oturum sonunda istatistiklerinizi görün
-
-### Yedekleme
-1. Ana sayfadan ayarlar (⚙️) ikonuna tıklayın
-2. "Notları Dışa Aktar" seçeneğini seçin
-3. Dosyayı paylaşın veya kaydedin
-
-## Önemli Not
-
-⚠️ Kaydedilen bilgiler uygulama kaldırıldığında (uninstall) kaybolacaktır. Düzenli olarak notlarınızı "Notları Dışa Aktar" özelliğini kullanarak yedekleyin!
-
-## Android 15 ve 16 KB Notu
-
-- Proje Android tarafinda `compileSdk = 36` ile derlenir.
-- Uygulama yalnızca dikey (`portrait`) kullanıma kilitlidir.
-- Edge-to-edge gorunum Flutter tarafinda `SystemUiMode.edgeToEdge` ile etkinlestirilir.
-- AGP 8.5.1+ gereksinimi karsilanir (projede AGP 8.7.3 kullanilir).
-- JNI kutuphaneleri modern paketleme ile (`useLegacyPackaging = false`) uretilir.
-
-Release almadan once asagidaki kontrolleri calistirin:
-
+### Testler
 ```bash
-flutter clean
-flutter pub get
+flutter test
+```
+
+92 test şunları doğrular:
+- **Ekran uyumu:** 7 cihaz profilinde (320x568 küçük ekran, çentikli, 3 tuşlu gezinme, %130–150 yazı boyutu, klavye açık, tablet yatay) tüm sayfalar taşmadan çizilir ve ana butonlar kaydırmadan görünür.
+- **Veri doğruluğu:** id ataması, doğru notun düzenlenmesi/silinmesi, klasör taşıma ve yeniden adlandırma.
+- **Çalışma modu:** oturumun her zaman bitmesi, tekrar turu.
+- **Aralıklı tekrar:** aralıkların (1 → 3 → 8 gün) ve tekrar günlerinin hesaplanması, "Bugünlük bu kadar" ekranı, ana sayfa rozeti.
+- **Sesli okuma:** doğru dil ve metinle okuma, TTS yokken çökmeden uyarı.
+
+## Yayınlama
+
+### İmzalama
+Release imzası `android/key.properties` dosyasından okunur. Bu dosya ve anahtar (`.jks`) git'e eklenmez:
+
+```properties
+storePassword=…
+keyPassword=…
+keyAlias=…
+storeFile=/tam/yol/upload-keystore.jks
+```
+
+### AAB oluşturma
+```bash
 flutter build appbundle --release
 ```
 
-Uretilen paketin 16 KB hizalama kontrolleri icin:
+Çıktı: `build/app/outputs/bundle/release/app-release.aab`. Önce Play Console'da **dahili test** kanalına yükleyip deneyin, sonra üretime çıkın.
+
+### AAB'yi cihazda/emülatörde deneme
+Play'in yaptığı gibi cihaza özel APK'lar üretip kurmak için (test anahtarıyla imzalanır):
 
 ```bash
-bundletool dump config --bundle=build/app/outputs/bundle/release/app-release.aab | grep alignment
-zipalign -c -P 16 -v 4 build/app/outputs/flutter-apk/app-release.apk
-adb shell getconf PAGE_SIZE
+java -jar tools/bundletool.jar build-apks --bundle=build/app/outputs/bundle/release/app-release.aab --output=flip.apks --connected-device --ks=<test.jks> --ks-key-alias=<alias> --ks-pass=pass:<şifre>
+```
+```bash
+java -jar tools/bundletool.jar install-apks --apks=flip.apks
 ```
 
-Tek komutla kontrol icin:
+> Play sürümü kurulu bir telefonda farklı anahtarla imzalı paket kurulamaz. Önce kaldırmak notları siler; gerçek telefonda dahili test kanalını kullanın.
+
+### Android 15/16 ve 16 KB sayfa boyutu
+- `compileSdk = 36`, `targetSdk = 36` (Google Play'in 31 Ağustos 2026 hedef API şartı).
+- Edge-to-edge görünüm açıktır; sayfalar `SafeLayout` ile sistem çubuklarının dışında kalır.
+- Uygulama dikey kilitlidir. Android 16, 600dp üzeri ekranlarda (tablet, katlanabilir) bu kilidi yok sayar; sayfalar yatay ekranda da çalışacak şekilde esnektir.
+- Android 16'nın geri hareketi için `enableOnBackInvokedCallback` açıktır.
+- AGP 8.7.3; JNI kütüphaneleri modern paketleme (`useLegacyPackaging = false`) ile 16 KB hizalı üretilir.
+
+16 KB hizalama kontrolü:
 
 ```bash
 bash scripts/verify_16kb.sh
 ```
 
-Script `bundletool` / `zipalign` / `adb` bulamazsa Linux icin hizli kurulum:
+Script bağlı cihaz yoksa `adb` adımında durur; diğer iki kontrol elle de çalıştırılabilir:
 
 ```bash
-export ANDROID_SDK_ROOT="$HOME/Android/Sdk"
-export PATH="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$PATH"
-sdkmanager "platform-tools" "build-tools;36.0.0"
-
-# bundletool icin:
-# 1) PATH'e bundletool binary ekleyin
-# veya
-# 2) bundletool.jar dosyasini tools/bundletool.jar olarak koyun
+java -jar tools/bundletool.jar dump config --bundle=build/app/outputs/bundle/release/app-release.aab | grep alignment
+```
+```bash
+zipalign -c -P 16 -v 4 build/app/outputs/flutter-apk/app-release.apk
 ```
 
-- `bundletool` cikisinda `PAGE_ALIGNMENT_16K` beklenir.
-- `adb shell getconf PAGE_SIZE` komutu 16 KB test ortami icin `16384` donmelidir.
+Beklenen sonuçlar: `PAGE_ALIGNMENT_16K` ve `Verification successful`.
 
-16 KB page-size uyumlulugu icin, final AAB dosyasini Android 15 (API 35+) cihaz/emulator uzerinde acilis ve temel akislarda test edin. Flutter/engine kaynakli native kutuphane uyumsuzlugu gorurseniz Flutter SDK'yi guncel stable surume yukselterek yeniden release alin.
+## Sürüm Geçmişi
 
-## Gelistirme
+### 1.3.0
+- **Aralıklı tekrar:** zamanı gelen kartlar, "Bugün N tekrar" rozeti, "Bugünlük bu kadar" ekranı, yeni istatistikler (bugünkü tekrar, öğrenilen).
+- **Sesli okuma:** hoparlör butonu, ön/arka yüz için ayrı dil, hız ve otomatik okuma.
+- **Renkli kart temaları:** renk kartın tamamını, çerçevesini ve simgesini değiştirir.
+- **Düzeltmeler:**
+  - Çalışma modunda "Bilmiyorum" denen kart sonsuz tekrar ediyor, oturum bitmiyordu.
+  - Sonuç ekranında dar telefonlarda taşma vardı.
 
-Bu proje Flutter ile geliştirilmiştir. Katkıda bulunmak için:
-
-1. Projeyi fork edin
-2. Feature branch oluşturun (`git checkout -b feature/AmazingFeature`)
-3. Değişikliklerinizi commit edin (`git commit -m 'Add some AmazingFeature'`)
-4. Branch'inizi push edin (`git push origin feature/AmazingFeature`)
-5. Pull Request oluşturun
+### 1.2.0
+- **Android 16 (API 36)** hedefleniyor.
+- **Ekran uyumu:** Bazı telefonlarda butonların aşağıda kalıp kaydırma gerektirmesi düzeltildi.
+- **Veri hataları:**
+  - Karışık listede "Düzenle" yanlış notu değiştirebiliyordu.
+  - Klasör içinde silme diğer klasörlerin notlarını silebiliyordu.
+- **Karanlık mod:** beyaz zemin üstüne beyaz yazı sorunları giderildi.
+- **Yenilikler:**
+  - Not rengi ve klasör seçimi
+  - Silme onayı
+  - Klasör yeniden adlandırma ve not sayıları
+  - Klasör silerken notları taşıma
+  - Çalışma modunda "önce zor kartlar" ve "cevaptan başla"
+  - Kart bazında doğru/yanlış takibi
+  - İçe aktarmada yinelenen notların atlanması
+  - Geri tuşunda kaydedilmemiş not uyarısı
 
 ## Lisans
 
